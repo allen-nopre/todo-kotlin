@@ -9,5 +9,7 @@ data class Todo(
     val priority: Priority,
     val status: TodoStatus,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val subtasks: List<Subtask> = emptyList(),
+    val attachments: List<Attachment> = emptyList()
 )

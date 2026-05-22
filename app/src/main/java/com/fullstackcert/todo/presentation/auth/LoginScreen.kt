@@ -124,7 +124,7 @@ fun LoginScreen(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
-                    text = "OR",
+                    text = stringResource(R.string.or_divider),
                     modifier = Modifier.padding(horizontal = 12.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -144,7 +144,7 @@ fun LoginScreen(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Continue with Google")
+                Text(stringResource(R.string.continue_with_google))
             }
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -159,7 +159,7 @@ fun LoginScreen(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Continue with Facebook")
+                Text(stringResource(R.string.continue_with_facebook))
             }
         }
     }

@@ -68,6 +68,9 @@ dependencies {
 
     // Accompanist
     implementation("com.google.accompanist:accompanist-swiperefresh:0.34.0")
+
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
 
 kapt {

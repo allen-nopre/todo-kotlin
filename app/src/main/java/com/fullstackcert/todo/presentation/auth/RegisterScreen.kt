@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -22,27 +23,21 @@ private data class PasswordRule(val label: String, val passed: Boolean)
 
 private fun evaluateRules(password: String, username: String): List<PasswordRule> {
     return listOf(
-        PasswordRule(
-            "Cannot contain your name",
-            username.isBlank() || !password.contains(username, ignoreCase = true)
-        ),
-        PasswordRule("At least 8 characters", password.length >= 8),
-        PasswordRule(
-            "Contains a number or symbol",
-            password.any { it.isDigit() || !it.isLetterOrDigit() }
-        )
+        PasswordRule("rule_no_name", username.isBlank() || !password.contains(username, ignoreCase = true)),
+        PasswordRule("rule_min_length", password.length >= 8),
+        PasswordRule("rule_number_or_symbol", password.any { it.isDigit() || !it.isLetterOrDigit() })
     )
 }
 
-private fun passwordStrength(password: String, username: String): Pair<String, Color> {
+private fun passwordStrength(password: String, username: String): Pair<Int, Color> {
     val rules = evaluateRules(password, username)
     val passed = rules.count { it.passed }
     return when {
-        password.isEmpty() -> "" to Color.Transparent
-        passed <= 1 -> "Weak" to Color(0xFFF44336)
-        passed == 2 -> "Fair" to Color(0xFFFF9800)
-        password.length >= 12 -> "Strong" to Color(0xFF4CAF50)
-        else -> "Good" to Color(0xFF8BC34A)
+        password.isEmpty() -> R.string.app_name to Color.Transparent
+        passed <= 1 -> R.string.strength_weak to Color(0xFFF44336)
+        passed == 2 -> R.string.strength_fair to Color(0xFFFF9800)
+        password.length >= 12 -> R.string.strength_strong to Color(0xFF4CAF50)
+        else -> R.string.strength_good to Color(0xFF8BC34A)
     }
 }
 
@@ -57,7 +52,7 @@ fun RegisterScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val rules = evaluateRules(password, username)
-    val (strengthLabel, strengthColor) = passwordStrength(password, username)
+    val (strengthLabelRes, strengthColor) = passwordStrength(password, username)
     val allRulesPassed = rules.all { it.passed }
 
     LaunchedEffect(state.registrationSuccess) {
@@ -84,7 +79,7 @@ fun RegisterScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Create an account", style = MaterialTheme.typography.displaySmall)
+            Text(stringResource(R.string.create_an_account), style = MaterialTheme.typography.displaySmall)
             Spacer(modifier = Modifier.height(32.dp))
 
             // Username field
@@ -94,7 +89,7 @@ fun RegisterScreen(
                     username = it
                     viewModel.clearUsernameError()
                 },
-                label = { Text("Username") },
+                label = { Text(stringResource(R.string.username)) },
                 singleLine = true,
                 isError = state.usernameError != null,
                 supportingText = {
@@ -110,7 +105,7 @@ fun RegisterScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
@@ -124,12 +119,12 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Password strength: ",
+                        stringResource(R.string.password_strength),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        strengthLabel,
+                        stringResource(strengthLabelRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = strengthColor
                     )
@@ -144,7 +139,14 @@ fun RegisterScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     rules.forEach { rule ->
-                        PasswordRuleRow(label = rule.label, passed = rule.passed)
+                        PasswordRuleRow(
+                            labelRes = when (rule.label) {
+                                "rule_no_name" -> R.string.rule_no_name
+                                "rule_min_length" -> R.string.rule_min_length
+                                else -> R.string.rule_number_or_symbol
+                            },
+                            passed = rule.passed
+                        )
                     }
                 }
             }
@@ -157,15 +159,15 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                else Text("Create Account")
+                else Text(stringResource(R.string.create_account_btn))
             }
             Spacer(modifier = Modifier.height(16.dp))
 
             val annotatedText = buildAnnotatedString {
-                append("Already have an account? ")
+                append(stringResource(R.string.already_have_account))
                 pushStringAnnotation(tag = "SIGNIN", annotation = "signin")
                 withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                    append("Sign in")
+                    append(stringResource(R.string.sign_in_link))
                 }
                 pop()
             }
@@ -186,7 +188,7 @@ fun RegisterScreen(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
-                    text = "OR",
+                    text = stringResource(R.string.or_divider),
                     modifier = Modifier.padding(horizontal = 12.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -206,7 +208,7 @@ fun RegisterScreen(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Continue with Google")
+                Text(stringResource(R.string.continue_with_google))
             }
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -221,14 +223,14 @@ fun RegisterScreen(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Continue with Facebook")
+                Text(stringResource(R.string.continue_with_facebook))
             }
         }
     }
 }
 
 @Composable
-private fun PasswordRuleRow(label: String, passed: Boolean) {
+private fun PasswordRuleRow(labelRes: Int, passed: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (passed) {
             Icon(
@@ -246,7 +248,7 @@ private fun PasswordRuleRow(label: String, passed: Boolean) {
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = label,
+            text = stringResource(labelRes),
             style = MaterialTheme.typography.bodySmall,
             color = if (passed) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
         )

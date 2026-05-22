@@ -7,5 +7,7 @@ data class CreateTodoRequestDto(
     val details: String?,
     @SerializedName("due_date") val dueDate: String,
     val priority: String,
-    val status: String
+    val status: String,
+    val subtasks: List<SubtaskDto> = emptyList(),
+    @SerializedName("completed_date") val completedDate: String? = null
 )

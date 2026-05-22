@@ -5,20 +5,36 @@
     <!-- Auth -->
     <string name="sign_in">Sign In</string>
     <string name="sign_out">Sign Out</string>
-    <string name="sign_out_confirm">Are you sure you want to sign out? All unsaved changes will be lost.</string>
+    <string name="sign_out_confirm">Are you sure you want to sign out?</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
-    <string name="passphrase">Passphrase</string>
-    <string name="passphrase_hint">Letters, numbers, spaces, ! # ( ) _ -</string>
     <string name="remember_me">Remember me</string>
     <string name="create_account">Don\'t have an account? Sign up</string>
     <string name="account_created">Account created! Please sign in.</string>
+    <string name="or_divider">OR</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_with_facebook">Continue with Facebook</string>
+
+    <!-- Register -->
+    <string name="create_an_account">Create an account</string>
+    <string name="create_account_btn">Create Account</string>
+    <string name="already_have_account">Already have an account? </string>
+    <string name="sign_in_link">Sign in</string>
+    <string name="password_strength">Password strength: </string>
+    <string name="rule_no_name">Cannot contain your name</string>
+    <string name="rule_min_length">At least 8 characters</string>
+    <string name="rule_number_or_symbol">Contains a number or symbol</string>
+    <string name="strength_weak">Weak</string>
+    <string name="strength_fair">Fair</string>
+    <string name="strength_good">Good</string>
+    <string name="strength_strong">Strong</string>
 
     <!-- Todo List -->
     <string name="my_todos">My Todos</string>
     <string name="no_todos">No todos yet. Tap + to create one.</string>
     <string name="selected_count">%d selected</string>
     <string name="filter">Filter</string>
+    <string name="filter_title">Filter</string>
     <string name="sort">Sort</string>
     <string name="all">All</string>
     <string name="home">Home</string>
@@ -26,6 +42,19 @@
     <string name="add_todo">Add Todo</string>
     <string name="delete_selected">Delete selected</string>
     <string name="cancel">Cancel</string>
+    <string name="apply">Apply</string>
+    <string name="close">Close</string>
+    <string name="delete_tasks_title">Delete Tasks</string>
+    <string name="delete_tasks_confirm">%d task(s) will be deleted.</string>
+    <string name="priority_label">Priority</string>
+    <string name="status_label">Status</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_high">High</string>
+    <string name="priority_critical">Critical</string>
+    <string name="status_not_started">Not Started</string>
+    <string name="status_in_progress">In Progress</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_cancelled">Cancelled</string>
 
     <!-- Todo Detail -->
     <string name="view_task">View Task</string>
@@ -42,18 +71,39 @@
     <string name="label_completed">Completed</string>
     <string name="no_details">No details</string>
     <string name="not_completed">—</string>
+    <string name="created_prefix">Created: %s</string>
+    <string name="due_prefix">Due: %s</string>
+    <string name="failed_to_delete">Failed to delete</string>
 
     <!-- Add/Edit Todo -->
     <string name="new_todo">New Todo</string>
     <string name="edit_todo">Edit Todo</string>
-    <string name="title_hint">Title (max 25 chars)</string>
-    <string name="details_hint">Details (max 300 chars)</string>
+    <string name="title_hint">Title</string>
+    <string name="details_hint">Details</string>
     <string name="select_due_date">Select Due Date</string>
     <string name="due_date_selected">Due: %s</string>
     <string name="set_completed_date">Set Completed Date</string>
     <string name="completed_date_selected">Completed: %s</string>
+    <string name="select_completion_date">Select completion date</string>
+    <string name="select_due_date_hint">Select due date</string>
     <string name="create">Create</string>
     <string name="update">Update</string>
+    <string name="save">Save</string>
     <string name="ok">OK</string>
     <string name="due_date">Due date</string>
+    <string name="attachments">Attachments</string>
+    <string name="browse_file_to_attach">Browse files to attach</string>
+    <string name="pending_upload">Pending upload</string>
+    <string name="no_attachments">No attachments yet</string>
+    <string name="subtasks">Subtasks</string>
+    <string name="subtask_title_hint">Subtask title</string>
+    <string name="add_subtask">Add</string>
+    <string name="new_subtask">New Subtask</string>
+    <string name="remove_subtask">Remove subtask</string>
+    <string name="delete_attachment">Delete attachment</string>
+    <string name="title_required">Title and due date are required</string>
+    <string name="failed_delete_attachment">Failed to delete attachment</string>
+    <string name="failed_delete_items">Failed to delete items</string>
+    <string name="done">Done</string>
+    <string name="not_done">Not Done</string>
 </resources>

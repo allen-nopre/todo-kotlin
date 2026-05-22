@@ -422,6 +422,7 @@ private fun TodoItem(
     onLongPress: () -> Unit
 ) {
     val highlightColor = getHighlightColor(todo)
+    var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -452,14 +453,39 @@ private fun TodoItem(
             StatusChip(todo.status)
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            todo.title,
-            style = MaterialTheme.typography.titleSmall.copy(textDecoration = TextDecoration.Underline),
-            color = CharcoalDark,
-            modifier = Modifier
-                .padding(start = 64.dp, top = 8.dp)
-                .clickable { onTitleClick() }
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 56.dp, top = 8.dp)
+        ) {
+            if (todo.subtasks.isNotEmpty()) {
+                Icon(
+                    painterResource(R.drawable.accordion_supress),
+                    contentDescription = null,
+                    tint = GraySecondary,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable { expanded = !expanded }
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(
+                todo.title,
+                style = MaterialTheme.typography.titleSmall.copy(textDecoration = TextDecoration.Underline),
+                color = Blue,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onTitleClick() }
+            )
+            if (todo.attachments.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    painterResource(R.drawable.attachment),
+                    contentDescription = null,
+                    tint = GraySecondary,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -477,6 +503,35 @@ private fun TodoItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = GraySecondary
             )
+        }
+        if (expanded && todo.subtasks.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 64.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                todo.subtasks.forEach { subtask ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            painterResource(if (subtask.isDone) R.drawable.done else R.drawable.not_done),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            subtask.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (subtask.isDone) GraySecondary else CharcoalDark,
+                            textDecoration = if (subtask.isDone) TextDecoration.LineThrough else TextDecoration.None
+                        )
+                    }
+                }
+            }
         }
     }
     HorizontalDivider()

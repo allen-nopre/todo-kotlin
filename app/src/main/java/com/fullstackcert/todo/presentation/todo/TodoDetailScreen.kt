@@ -1,8 +1,10 @@
 package com.fullstackcert.todo.presentation.todo
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -47,7 +49,13 @@ fun TodoDetailScreen(
                     Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.cancel)) } }
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(
+                        stringResource(R.string.cancel)
+                    )
+                }
+            }
         )
     }
 
@@ -78,11 +86,11 @@ fun TodoDetailScreen(
                 ) {
                     NavigationBarItem(
                         selected = false,
-                        onClick = onNavigateBack,
+                        onClick = { showDeleteDialog = true },
                         icon = {
                             Icon(
-                                painterResource(R.drawable.delete_inactive),
-                                contentDescription = stringResource(R.string.back)
+                                painterResource(if (showDeleteDialog) R.drawable.delete_active else R.drawable.delete_inactive),
+                                contentDescription = stringResource(R.string.delete)
                             )
                         },
                         label = null
@@ -111,9 +119,9 @@ fun TodoDetailScreen(
                         onClick = {},
                         icon = {
                             Icon(
-                                painterResource(R.drawable.delete_inactive),
+                                painterResource(R.drawable.avatar),
                                 contentDescription = null,
-                                tint = androidx.compose.ui.graphics.Color.Transparent
+                                tint = GraySecondary
                             )
                         },
                         label = null
@@ -122,15 +130,22 @@ fun TodoDetailScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)) {
             when {
                 state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                state.error != null -> Text(state.error!!, modifier = Modifier.align(Alignment.Center))
+                state.error != null -> Text(
+                    state.error!!,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
                 state.todo != null -> {
                     val todo = state.todo!!
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                             .padding(16.dp)
                     ) {
                         // Priority chip + Status icon+text
@@ -139,14 +154,17 @@ fun TodoDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             val priorityColor = when (todo.priority) {
-                                Priority.LOW      -> PriorityGreen
-                                Priority.HIGH     -> PriorityYellow
+                                Priority.LOW -> PriorityGreen
+                                Priority.HIGH -> PriorityYellow
                                 Priority.CRITICAL -> PriorityRed
                             }
                             Surface(
                                 color = priorityColor.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(4.dp),
-                                border = androidx.compose.foundation.BorderStroke(0.5.dp, priorityColor)
+                                border = androidx.compose.foundation.BorderStroke(
+                                    0.5.dp,
+                                    priorityColor
+                                )
                             ) {
                                 Text(
                                     todo.priority.name,
@@ -159,20 +177,20 @@ fun TodoDetailScreen(
                             val statusColor = when (todo.status) {
                                 TodoStatus.NOT_STARTED -> GraySecondary
                                 TodoStatus.IN_PROGRESS -> Blue
-                                TodoStatus.COMPLETED   -> PriorityGreen
-                                TodoStatus.CANCELLED   -> Pink
+                                TodoStatus.COMPLETED -> PriorityGreen
+                                TodoStatus.CANCELLED -> Pink
                             }
                             val statusIcon = when (todo.status) {
                                 TodoStatus.NOT_STARTED -> R.drawable.not_done
                                 TodoStatus.IN_PROGRESS -> R.drawable.in_progress
-                                TodoStatus.COMPLETED   -> R.drawable.done
-                                TodoStatus.CANCELLED   -> R.drawable.cancelled
+                                TodoStatus.COMPLETED -> R.drawable.done
+                                TodoStatus.CANCELLED -> R.drawable.cancelled
                             }
                             val statusLabel = when (todo.status) {
                                 TodoStatus.NOT_STARTED -> "Not Started"
                                 TodoStatus.IN_PROGRESS -> "In Progress"
-                                TodoStatus.COMPLETED   -> "Completed"
-                                TodoStatus.CANCELLED   -> "Cancelled"
+                                TodoStatus.COMPLETED -> "Completed"
+                                TodoStatus.CANCELLED -> "Cancelled"
                             }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -184,7 +202,11 @@ fun TodoDetailScreen(
                                     tint = statusColor,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Text(statusLabel, color = statusColor, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    statusLabel,
+                                    color = statusColor,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
 
@@ -199,53 +221,95 @@ fun TodoDetailScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Created date
+                        // Created - Due date on same row
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Icon(
-                                painterResource(R.drawable.calendar),
-                                contentDescription = null,
-                                tint = GraySecondary,
-                                modifier = Modifier.size(14.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    formatDateTime(todo.createdAt),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = GraySecondary
+                                )
+                            }
                             Text(
-                                "Created: ${formatDateTime(todo.createdAt)}",
+                                "-",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = GraySecondary
                             )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Due date
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.due_date),
-                                contentDescription = null,
-                                tint = GraySecondary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                "Due: ${formatDateTime(todo.dueDate)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = GraySecondary
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    formatDateTime(todo.dueDate),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = GraySecondary
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = GrayLight, thickness = 0.5.dp)
-                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // Description
+                        // Details
                         Text(
                             todo.details ?: stringResource(R.string.no_details),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (todo.details != null) CharcoalDark else GraySecondary
                         )
+
+                        if (todo.subtasks.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = GrayLight, thickness = 0.5.dp)
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                stringResource(R.string.subtasks),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = CharcoalDark
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            todo.subtasks.forEach { subtask ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        subtask.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = CharcoalDark,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            painterResource(if (subtask.isDone) R.drawable.done else R.drawable.not_done),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            if (subtask.isDone) stringResource(R.string.done) else stringResource(
+                                                R.string.not_done
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color =  GraySecondary
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(color = GrayLight, thickness = 0.5.dp)
+                            }
+                        }
                     }
                 }
             }
@@ -256,6 +320,9 @@ fun TodoDetailScreen(
 private fun formatDateTime(isoDate: String): String {
     return try {
         val instant = Instant.parse(isoDate)
-        instant.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a"))
-    } catch (e: Exception) { isoDate }
+        instant.atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a"))
+    } catch (e: Exception) {
+        isoDate
+    }
 }

@@ -1,6 +1,7 @@
 package com.fullstackcert.todo.data.remote.api
 
 import com.fullstackcert.todo.data.remote.dto.*
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -32,4 +33,17 @@ interface TodoApiService {
 
     @POST("todos/bulk-delete")
     suspend fun bulkDelete(@Body request: BulkDeleteRequestDto): Response<MessageResponseDto>
+
+    @Multipart
+    @POST("todos/{todoId}/attachments")
+    suspend fun uploadAttachment(
+        @Path("todoId") todoId: Int,
+        @Part file: MultipartBody.Part
+    ): Response<AttachmentResponseDto>
+
+    @DELETE("todos/{todoId}/attachments/{attachmentId}")
+    suspend fun deleteAttachment(
+        @Path("todoId") todoId: Int,
+        @Path("attachmentId") attachmentId: Int
+    ): Response<MessageResponseDto>
 }

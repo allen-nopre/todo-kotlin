@@ -11,5 +11,7 @@ data class TodoDto(
     val priority: String,
     val status: String,
     @SerializedName("created_at") val createdAt: String,
-    @SerializedName("updated_at") val updatedAt: String
+    @SerializedName("updated_at") val updatedAt: String,
+    val subtasks: List<SubtaskDto> = emptyList(),
+    val attachments: List<AttachmentDto> = emptyList()
 )

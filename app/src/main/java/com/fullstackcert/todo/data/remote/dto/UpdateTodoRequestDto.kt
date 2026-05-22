@@ -6,5 +6,6 @@ data class UpdateTodoRequestDto(
     val details: String?,
     @SerializedName("due_date") val dueDate: String?,
     @SerializedName("completed_date") val completedDate: String?,
-    val status: String?
+    val status: String?,
+    val subtasks: List<SubtaskDto>? = null
 )
