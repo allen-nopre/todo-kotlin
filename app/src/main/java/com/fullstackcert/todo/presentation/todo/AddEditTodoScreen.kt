@@ -49,9 +49,7 @@ fun AddEditTodoScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showDueDatePicker by remember { mutableStateOf(false) }
-    var showCompletedDatePicker by remember { mutableStateOf(false) }
     val dueDateMillis = runCatching { Instant.parse(state.dueDate).toEpochMilli() }.getOrNull()
-    val completedDateMillis = runCatching { Instant.parse(state.completedDate ?: "").toEpochMilli() }.getOrNull()
 
     val filePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -99,24 +97,6 @@ fun AddEditTodoScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDueDatePicker = false }) { Text(stringResource(R.string.cancel)) }
-            }
-        ) { DatePicker(state = dpState) }
-    }
-
-    if (showCompletedDatePicker) {
-        val dpState = rememberDatePickerState(initialSelectedDateMillis = completedDateMillis)
-        DatePickerDialog(
-            onDismissRequest = { showCompletedDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    dpState.selectedDateMillis?.let {
-                        viewModel.updateCompletedDate(Instant.ofEpochMilli(it).toString())
-                    }
-                    showCompletedDatePicker = false
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCompletedDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) { DatePicker(state = dpState) }
     }
@@ -178,30 +158,41 @@ fun AddEditTodoScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 var expandedPriority by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expandedPriority,
-                    onExpandedChange = { expandedPriority = it },
-                    modifier = Modifier.weight(1f)
-                ) {
+                if (!state.isEditing) {
+                    ExposedDropdownMenuBox(
+                        expanded = expandedPriority,
+                        onExpandedChange = { expandedPriority = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = state.priority.uppercase(),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.label_priority)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPriority) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedPriority,
+                            onDismissRequest = { expandedPriority = false }) {
+                            listOf("low", "high", "critical").forEach { p ->
+                                DropdownMenuItem(
+                                    text = { Text(p.uppercase()) },
+                                    onClick = { viewModel.updatePriority(p); expandedPriority = false })
+                            }
+                        }
+                    }
+                } else {
                     OutlinedTextField(
                         value = state.priority.uppercase(),
                         onValueChange = {},
                         readOnly = true,
+                        enabled = false,
                         label = { Text(stringResource(R.string.label_priority)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPriority) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
+                        modifier = Modifier.weight(1f)
                     )
-                    ExposedDropdownMenu(
-                        expanded = expandedPriority,
-                        onDismissRequest = { expandedPriority = false }) {
-                        listOf("low", "high", "critical").forEach { p ->
-                            DropdownMenuItem(
-                                text = { Text(p.uppercase()) },
-                                onClick = { viewModel.updatePriority(p); expandedPriority = false })
-                        }
-                    }
                 }
 
                 var expandedStatus by remember { mutableStateOf(false) }
@@ -237,29 +228,24 @@ fun AddEditTodoScreen(
                 }
             }
 
-            // Completion date
-            OutlinedTextField(
-                value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.set_completed_date)) },
-                placeholder = { Text("Select completion date") },
-                trailingIcon = {
-                    IconButton(onClick = { showCompletedDatePicker = true }) {
-                        Icon(Icons.Default.DateRange, contentDescription = null)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showCompletedDatePicker = true }
-            )
+            // Completion date — shown as read-only when status is completed
+            if (state.status == "completed") {
+                OutlinedTextField(
+                    value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else formatForDisplay(Instant.now().toString()),
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text(stringResource(R.string.set_completed_date)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             // Title
             OutlinedTextField(
                 value = state.title,
                 onValueChange = { viewModel.updateTitle(it) },
                 label = { Text(stringResource(R.string.title_hint)) },
-//                enabled = !state.isEditing,
+                enabled = !state.isEditing,
                 minLines = 2,
                 maxLines = 3,
                 supportingText = { Text("${state.title.length}/25") },
@@ -384,7 +370,10 @@ fun AddEditTodoScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(R.string.subtasks), style = MaterialTheme.typography.titleSmall)
-                OutlinedButton(onClick = { viewModel.addSubtask() }) {
+                OutlinedButton(
+                    onClick = { viewModel.addSubtask() },
+                    enabled = state.status != "completed"
+                ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = null,

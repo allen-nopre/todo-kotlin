@@ -120,10 +120,9 @@ fun TodoNavHost() {
             AddEditTodoScreen(
                 todoId = todoId,
                 onNavigateBack = {
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("refreshed", true)
-                    navController.popBackStack()
+                    navController.navigate(Routes.TODO_LIST) {
+                        popUpTo(Routes.TODO_LIST) { inclusive = false }
+                    }
                 }
             )
         }

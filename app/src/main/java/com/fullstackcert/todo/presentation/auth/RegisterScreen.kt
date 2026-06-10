@@ -21,6 +21,11 @@ import com.fullstackcert.todo.R
 
 private data class PasswordRule(val label: String, val passed: Boolean)
 
+private val ALLOWED_USERNAME_REGEX = Regex("^[a-zA-Z0-9 !#()_-]*$")
+
+private fun isValidUsername(username: String) = ALLOWED_USERNAME_REGEX.matches(username)
+
+
 private fun evaluateRules(password: String, username: String): List<PasswordRule> {
     return listOf(
         PasswordRule("rule_no_name", username.isBlank() || !password.contains(username, ignoreCase = true)),
@@ -49,6 +54,7 @@ fun RegisterScreen(
     val state by viewModel.state.collectAsState()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var usernameSymbolError by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val rules = evaluateRules(password, username)
@@ -86,15 +92,31 @@ fun RegisterScreen(
             OutlinedTextField(
                 value = username,
                 onValueChange = {
-                    username = it
+                    if (isValidUsername(it)) {
+                        username = it
+                        usernameSymbolError = false
+                    } else {
+                        usernameSymbolError = true
+                    }
                     viewModel.clearUsernameError()
                 },
                 label = { Text(stringResource(R.string.username)) },
                 singleLine = true,
-                isError = state.usernameError != null,
+                isError = state.usernameError != null || usernameSymbolError,
                 supportingText = {
-                    if (state.usernameError != null) {
-                        Text(state.usernameError!!, color = MaterialTheme.colorScheme.error)
+                    when {
+                        usernameSymbolError -> Text(
+                            "Allowed: letters, numbers, spaces, ! # ( ) _ -",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        state.usernameError != null -> Text(
+                            state.usernameError!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        else -> Text(
+                            "Allowed: letters, numbers, spaces, ! # ( ) _ -",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -104,7 +126,9 @@ fun RegisterScreen(
             // Password field
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    if (isValidUsername(it)) password = it
+                },
                 label = { Text(stringResource(R.string.password)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
@@ -155,7 +179,7 @@ fun RegisterScreen(
 
             Button(
                 onClick = { viewModel.register(username, password) },
-                enabled = !state.isLoading && username.isNotBlank() && allRulesPassed,
+                enabled = !state.isLoading && username.isNotBlank() && allRulesPassed && !usernameSymbolError,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp))

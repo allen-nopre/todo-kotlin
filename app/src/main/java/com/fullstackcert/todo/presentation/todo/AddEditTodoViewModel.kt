@@ -86,7 +86,14 @@ class AddEditTodoViewModel @Inject constructor(
     fun updateDetails(value: String) { if (value.length <= 300) _state.update { it.copy(details = value) } }
     fun updateDueDate(value: String) { _state.update { it.copy(dueDate = value) } }
     fun updatePriority(value: String) { _state.update { it.copy(priority = value) } }
-    fun updateStatus(value: String) { _state.update { it.copy(status = value) } }
+    fun updateStatus(value: String) {
+        _state.update {
+            val completedDate = if (value == "completed") Instant.now().toString()
+                                else if (it.status == "completed") null
+                                else it.completedDate
+            it.copy(status = value, completedDate = completedDate)
+        }
+    }
     fun updateCompletedDate(value: String?) { _state.update { it.copy(completedDate = value) } }
 
     fun addSubtask() { _state.update { it.copy(subtasks = it.subtasks + SubtaskInput()) } }

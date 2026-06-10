@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ import com.fullstackcert.todo.ui.theme.*
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -259,6 +261,35 @@ fun TodoDetailScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = GraySecondary
                                 )
+                                val badge = getDueDateBadge(todo.dueDate, todo.status)
+                                if (badge != null) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        badge.first,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = badge.second
+                                    )
+                                }
+                            }
+                        }
+
+                        if (todo.status == TodoStatus.COMPLETED && !todo.completedDate.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.done),
+                                    contentDescription = null,
+                                    tint = PriorityGreen,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    "Completed on ${formatDateTime(todo.completedDate)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = PriorityGreen
+                                )
                             }
                         }
 
@@ -323,6 +354,20 @@ fun TodoDetailScreen(
                 }
             }
         }
+    }
+}
+
+private fun getDueDateBadge(dueDate: String, status: TodoStatus): Pair<String, Color>? {
+    if (status == TodoStatus.COMPLETED || status == TodoStatus.CANCELLED) return null
+    val now = Instant.now()
+    val due = try { Instant.parse(dueDate) } catch (e: Exception) { return null }
+    val hoursUntilDue = ChronoUnit.HOURS.between(now, due)
+    val todayDate = now.atZone(ZoneId.systemDefault()).toLocalDate()
+    val dueDateLocal = due.atZone(ZoneId.systemDefault()).toLocalDate()
+    return when {
+        hoursUntilDue < 0 -> "Overdue" to Color(0xFFEB0000)
+        dueDateLocal == todayDate -> "Today" to Color(0xFFFF9800)
+        else -> null
     }
 }
 

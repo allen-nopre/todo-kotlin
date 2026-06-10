@@ -587,6 +587,7 @@ private fun TodoItem(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(start = 64.dp)
         ) {
+            val dueBadge = getDueBadge(todo)
             Icon(
                 painterResource(R.drawable.due_date),
                 contentDescription = stringResource(R.string.due_date),
@@ -599,6 +600,14 @@ private fun TodoItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = GraySecondary
             )
+            if (dueBadge != null) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    dueBadge.first,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = dueBadge.second
+                )
+            }
         }
         if (expanded && todo.subtasks.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -690,6 +699,20 @@ private fun StatusChip(status: TodoStatus) {
             color = GraySecondary,
             style = MaterialTheme.typography.bodySmall
         )
+    }
+}
+
+private fun getDueBadge(todo: Todo): Pair<String, Color>? {
+    if (todo.status == TodoStatus.COMPLETED || todo.status == TodoStatus.CANCELLED) return null
+    val now = Instant.now()
+    val due = try { Instant.parse(todo.dueDate) } catch (e: Exception) { return null }
+    val hoursUntilDue = ChronoUnit.HOURS.between(now, due)
+    val todayDate = now.atZone(ZoneId.systemDefault()).toLocalDate()
+    val dueDate = due.atZone(ZoneId.systemDefault()).toLocalDate()
+    return when {
+        hoursUntilDue < 0 -> "Overdue" to Color(0xFFEB0000)
+        dueDate == todayDate -> "Today" to Color(0xFFFF9800)
+        else -> null
     }
 }
 

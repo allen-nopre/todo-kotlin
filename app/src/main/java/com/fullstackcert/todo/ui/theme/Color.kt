@@ -19,6 +19,6 @@ val PriorityYellow = Color(0xFFFAC300)
 val PriorityRed    = Color(0xFFEB0000)
 
 // Soft backgrounds
-val PaleGreen  = Color(0xFFF9FFF6)
-val PaleYellow = Color(0xFFFFFDF2)
-val PalePink   = Color(0xFFFFF6F6)
+val PaleGreen  = Color(0xFFDFF5E1)
+val PaleYellow = Color(0xFFFFF3CD)
+val PalePink   = Color(0xFFFFDDDD)
