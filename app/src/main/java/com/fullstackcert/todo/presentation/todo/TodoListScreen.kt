@@ -2,6 +2,8 @@ package com.fullstackcert.todo.presentation.todo
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -12,17 +14,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavBackStackEntry
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,6 +37,85 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SortBottomSheet(
+    sortBy: SortBy,
+    sortOrder: SortOrder,
+    onApply: (SortBy, SortOrder) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var tempSortBy by remember { mutableStateOf(sortBy) }
+    var tempSortOrder by remember { mutableStateOf(sortOrder) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.size(48.dp))
+            Text("Sort", style = MaterialTheme.typography.titleMedium)
+            IconButton(onClick = onDismiss) {
+                Icon(painterResource(R.drawable.cancel), contentDescription = "Close")
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp)
+        ) {
+            listOf(
+                SortBy.NONE to "None",
+                SortBy.DUE_DATE to "Due Date",
+                SortBy.PRIORITY to "Priority",
+                SortBy.STATUS to "Status"
+            ).forEach { (s, label) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    RadioButton(selected = tempSortBy == s, onClick = { tempSortBy = s })
+                    Text(label, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            listOf(
+                SortOrder.ASCENDING to "Ascending",
+                SortOrder.DESCENDING to "Descending"
+            ).forEach { (o, label) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    RadioButton(
+                        selected = tempSortOrder == o,
+                        onClick = { tempSortOrder = o },
+                        enabled = tempSortBy != SortBy.NONE
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (tempSortBy != SortBy.NONE) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                }
+            }
+        }
+        Button(
+            onClick = { onApply(tempSortBy, tempSortOrder); onDismiss() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text("Apply")
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,11 +210,13 @@ fun TodoListScreen(
     onNavigateToDetail: (Int) -> Unit,
     onNavigateToAdd: () -> Unit,
     onLogout: () -> Unit,
-    refreshTrigger: NavBackStackEntry? = null,
+    refreshTrigger: Boolean = false,
+    onRefreshConsumed: () -> Unit = {},
     todoViewModel: TodoListViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by todoViewModel.state.collectAsState()
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
@@ -149,11 +226,22 @@ fun TodoListScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    var showSortMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(refreshTrigger) {
+        if (refreshTrigger) {
+            todoViewModel.loadTodos()
+            onRefreshConsumed()
+        }
+    }
+    var showSortSheet by remember { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.toast) {
+        state.toast?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); todoViewModel.clearToast() }
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -200,6 +288,15 @@ fun TodoListScreen(
                     Text(stringResource(R.string.cancel))
                 }
             }
+        )
+    }
+
+    if (showSortSheet) {
+        SortBottomSheet(
+            sortBy = state.sortBy,
+            sortOrder = state.sortOrder,
+            onApply = { s, o -> todoViewModel.setSortByAndOrder(s, o) },
+            onDismiss = { showSortSheet = false }
         )
     }
 
@@ -287,23 +384,11 @@ fun TodoListScreen(
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Box {
-                            IconButton(onClick = { showSortMenu = true }) {
+                            IconButton(onClick = { showSortSheet = true }) {
                                 Icon(
                                     painterResource(R.drawable.sort),
                                     contentDescription = stringResource(R.string.sort)
                                 )
-                            }
-                            DropdownMenu(
-                                expanded = showSortMenu,
-                                onDismissRequest = { showSortMenu = false }) {
-                                SortBy.entries.forEach { sort ->
-                                    DropdownMenuItem(
-                                        text = { Text(sort.name.replace("_", " ")) },
-                                        onClick = {
-                                            todoViewModel.setSortBy(sort); showSortMenu = false
-                                        }
-                                    )
-                                }
                             }
                         }
                     }
@@ -471,7 +556,7 @@ private fun TodoItem(
             Text(
                 todo.title,
                 style = MaterialTheme.typography.titleSmall.copy(textDecoration = TextDecoration.Underline),
-                color = Blue,
+                color = CharcoalDark,
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onTitleClick() }
@@ -573,6 +658,12 @@ private fun StatusChip(status: TodoStatus) {
         TodoStatus.COMPLETED -> "Completed"
         TodoStatus.CANCELLED -> "Cancelled"
     }
+    val statusColor = when (status) {
+        TodoStatus.NOT_STARTED -> GraySecondary
+        TodoStatus.IN_PROGRESS -> Blue
+        TodoStatus.COMPLETED -> PriorityGreen
+        TodoStatus.CANCELLED -> Pink
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -580,7 +671,7 @@ private fun StatusChip(status: TodoStatus) {
         Icon(
             painterResource(icon),
             contentDescription = null,
-            tint = Blue,
+            tint = statusColor,
             modifier = Modifier.size(14.dp)
         )
         Text(
@@ -613,7 +704,7 @@ private fun formatDate(isoDate: String): String {
     return try {
         val instant = Instant.parse(isoDate)
         val local = instant.atZone(ZoneId.systemDefault())
-        local.format(DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm"))
+        local.format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
     } catch (e: Exception) {
         isoDate
     }

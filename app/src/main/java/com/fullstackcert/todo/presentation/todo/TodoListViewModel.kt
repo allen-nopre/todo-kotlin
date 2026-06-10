@@ -16,17 +16,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class SortBy { DUE_DATE, PRIORITY, STATUS }
+enum class SortBy { NONE, DUE_DATE, PRIORITY, STATUS }
+enum class SortOrder { ASCENDING, DESCENDING }
 
 data class TodoListState(
     val todos: List<Todo> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val sortBy: SortBy = SortBy.DUE_DATE,
+    val sortBy: SortBy = SortBy.NONE,
+    val sortOrder: SortOrder = SortOrder.ASCENDING,
     val filterPriority: Priority? = null,
     val filterStatus: TodoStatus? = null,
     val selectedIds: Set<Int> = emptySet(),
-    val isSelectionMode: Boolean = false
+    val isSelectionMode: Boolean = false,
+    val toast: String? = null
 )
 
 @HiltViewModel
@@ -49,8 +52,7 @@ class TodoListViewModel @Inject constructor(
             when (val result = getTodosUseCase()) {
                 is Resource.Success -> {
                     allTodos = result.data
-                    _state.update { it.copy(isLoading = false) }
-                    applyFiltersAndSort()
+                    _state.update { applyFiltersAndSort(it.copy(isLoading = false)) }
                 }
                 is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
             }
@@ -58,18 +60,23 @@ class TodoListViewModel @Inject constructor(
     }
 
     fun setSortBy(sort: SortBy) {
-        _state.update { it.copy(sortBy = sort) }
-        applyFiltersAndSort()
+        _state.update { applyFiltersAndSort(it.copy(sortBy = sort)) }
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        _state.update { applyFiltersAndSort(it.copy(sortOrder = order)) }
+    }
+
+    fun setSortByAndOrder(sort: SortBy, order: SortOrder) {
+        _state.update { applyFiltersAndSort(it.copy(sortBy = sort, sortOrder = order)) }
     }
 
     fun setFilterPriority(priority: Priority?) {
-        _state.update { it.copy(filterPriority = priority) }
-        applyFiltersAndSort()
+        _state.update { applyFiltersAndSort(it.copy(filterPriority = priority)) }
     }
 
     fun setFilterStatus(status: TodoStatus?) {
-        _state.update { it.copy(filterStatus = status) }
-        applyFiltersAndSort()
+        _state.update { applyFiltersAndSort(it.copy(filterStatus = status)) }
     }
 
     fun toggleSelection(id: Int) {
@@ -88,31 +95,34 @@ class TodoListViewModel @Inject constructor(
     fun deleteSelected() {
         viewModelScope.launch {
             val ids = _state.value.selectedIds.toList()
+            val count = ids.size
             when (bulkDeleteTodosUseCase(ids)) {
                 is Resource.Success -> {
                     clearSelection()
                     loadTodos()
+                    _state.update { it.copy(toast = "$count task${if (count != 1) "s" else ""} deleted") }
                 }
                 is Resource.Error -> _state.update { it.copy(error = "Failed to delete items") }
             }
         }
     }
 
-    private fun applyFiltersAndSort() {
-        val state = _state.value
+    private fun applyFiltersAndSort(state: TodoListState): TodoListState {
         var filtered = allTodos
 
         state.filterPriority?.let { p -> filtered = filtered.filter { it.priority == p } }
         state.filterStatus?.let { s -> filtered = filtered.filter { it.status == s } }
 
         val sorted = when (state.sortBy) {
-            SortBy.DUE_DATE -> filtered.sortedBy { it.dueDate }
-            SortBy.PRIORITY -> filtered.sortedByDescending { it.priority.ordinal }
-            SortBy.STATUS -> filtered.sortedBy { it.status.ordinal }
+            SortBy.NONE -> filtered
+            SortBy.DUE_DATE -> if (state.sortOrder == SortOrder.ASCENDING) filtered.sortedBy { it.dueDate } else filtered.sortedByDescending { it.dueDate }
+            SortBy.PRIORITY -> if (state.sortOrder == SortOrder.ASCENDING) filtered.sortedBy { it.priority.ordinal } else filtered.sortedByDescending { it.priority.ordinal }
+            SortBy.STATUS -> if (state.sortOrder == SortOrder.ASCENDING) filtered.sortedBy { it.status.ordinal } else filtered.sortedByDescending { it.status.ordinal }
         }
 
-        _state.update { it.copy(todos = sorted) }
+        return state.copy(todos = sorted)
     }
 
     fun clearError() { _state.update { it.copy(error = null) } }
+    fun clearToast() { _state.update { it.copy(toast = null) } }
 }

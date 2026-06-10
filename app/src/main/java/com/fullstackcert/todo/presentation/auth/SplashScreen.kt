@@ -21,7 +21,8 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) { viewModel.checkSession() }
 
-    LaunchedEffect(state.isAuthenticated) {
+    LaunchedEffect(state.isSessionChecked) {
+        if (!state.isSessionChecked) return@LaunchedEffect
         if (state.isAuthenticated) onNavigateToTodos() else onNavigateToLogin()
     }
 

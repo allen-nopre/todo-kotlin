@@ -30,10 +30,19 @@ import java.time.format.DateTimeFormatter
 fun TodoDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEdit: (Int) -> Unit,
+    refreshTrigger: Boolean = false,
+    onRefreshConsumed: () -> Unit = {},
     viewModel: TodoDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(refreshTrigger) {
+        if (refreshTrigger) {
+            viewModel.loadTodo()
+            onRefreshConsumed()
+        }
+    }
 
     LaunchedEffect(state.isDeleted) {
         if (state.isDeleted) onNavigateBack()
@@ -228,7 +237,7 @@ fun TodoDetailScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(1.dp)
                             ) {
                                 Text(
                                     formatDateTime(todo.createdAt),
@@ -243,7 +252,7 @@ fun TodoDetailScreen(
                             )
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(1.dp)
                             ) {
                                 Text(
                                     formatDateTime(todo.dueDate),
@@ -321,7 +330,7 @@ private fun formatDateTime(isoDate: String): String {
     return try {
         val instant = Instant.parse(isoDate)
         instant.atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a"))
+            .format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
     } catch (e: Exception) {
         isoDate
     }

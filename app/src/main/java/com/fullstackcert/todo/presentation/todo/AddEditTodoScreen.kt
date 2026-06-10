@@ -1,6 +1,7 @@
 package com.fullstackcert.todo.presentation.todo
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -29,7 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.fullstackcert.todo.R
 import java.io.File
 import java.io.FileOutputStream
@@ -49,10 +50,23 @@ fun AddEditTodoScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showDueDatePicker by remember { mutableStateOf(false) }
     var showCompletedDatePicker by remember { mutableStateOf(false) }
+    val dueDateMillis = runCatching { Instant.parse(state.dueDate).toEpochMilli() }.getOrNull()
+    val completedDateMillis = runCatching { Instant.parse(state.completedDate ?: "").toEpochMilli() }.getOrNull()
 
     val filePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let {
+                val fileSize = context.contentResolver.query(
+                    it, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getLong(0) else 0L
+                } ?: 0L
+
+                if (fileSize > 10 * 1024 * 1024) {
+                    Toast.makeText(context, "File size must not exceed 10MB.", Toast.LENGTH_LONG).show()
+                    return@let
+                }
+
                 val mimeType = context.contentResolver.getType(it) ?: "application/octet-stream"
                 val inputStream = context.contentResolver.openInputStream(it) ?: return@let
                 val fileName = it.lastPathSegment ?: "attachment"
@@ -63,59 +77,46 @@ fun AddEditTodoScreen(
         }
 
     LaunchedEffect(todoId) { todoId?.let { viewModel.loadTodo(it) } }
+    LaunchedEffect(state.toast) {
+        state.toast?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearToast() }
+    }
     LaunchedEffect(state.isSaved) { if (state.isSaved) onNavigateBack() }
     LaunchedEffect(state.error) {
         state.error?.let { snackbarHostState.showSnackbar(it); viewModel.clearError() }
     }
 
     if (showDueDatePicker) {
-        val dpState = rememberDatePickerState()
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = dueDateMillis)
         DatePickerDialog(
             onDismissRequest = { showDueDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     dpState.selectedDateMillis?.let {
-                        viewModel.updateDueDate(
-                            Instant.ofEpochMilli(
-                                it
-                            ).toString()
-                        )
+                        viewModel.updateDueDate(Instant.ofEpochMilli(it).toString())
                     }
                     showDueDatePicker = false
                 }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDueDatePicker = false }) {
-                    Text(
-                        stringResource(R.string.cancel)
-                    )
-                }
+                TextButton(onClick = { showDueDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) { DatePicker(state = dpState) }
     }
 
     if (showCompletedDatePicker) {
-        val dpState = rememberDatePickerState()
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = completedDateMillis)
         DatePickerDialog(
             onDismissRequest = { showCompletedDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     dpState.selectedDateMillis?.let {
-                        viewModel.updateCompletedDate(
-                            Instant.ofEpochMilli(
-                                it
-                            ).toString()
-                        )
+                        viewModel.updateCompletedDate(Instant.ofEpochMilli(it).toString())
                     }
                     showCompletedDatePicker = false
                 }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCompletedDatePicker = false }) {
-                    Text(
-                        stringResource(R.string.cancel)
-                    )
-                }
+                TextButton(onClick = { showCompletedDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) { DatePicker(state = dpState) }
     }
@@ -176,44 +177,31 @@ fun AddEditTodoScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (!state.isEditing) {
-                    var expandedPriority by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = expandedPriority,
-                        onExpandedChange = { expandedPriority = it },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            value = state.priority.uppercase(),
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text(stringResource(R.string.label_priority)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPriority) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expandedPriority,
-                            onDismissRequest = { expandedPriority = false }) {
-                            listOf("low", "high", "critical").forEach { p ->
-                                DropdownMenuItem(
-                                    text = { Text(p.uppercase()) },
-                                    onClick = {
-                                        viewModel.updatePriority(p); expandedPriority = false
-                                    })
-                            }
-                        }
-                    }
-                } else {
+                var expandedPriority by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandedPriority,
+                    onExpandedChange = { expandedPriority = it },
+                    modifier = Modifier.weight(1f)
+                ) {
                     OutlinedTextField(
                         value = state.priority.uppercase(),
                         onValueChange = {},
                         readOnly = true,
-                        enabled = false,
                         label = { Text(stringResource(R.string.label_priority)) },
-                        modifier = Modifier.weight(1f)
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPriority) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
                     )
+                    ExposedDropdownMenu(
+                        expanded = expandedPriority,
+                        onDismissRequest = { expandedPriority = false }) {
+                        listOf("low", "high", "critical").forEach { p ->
+                            DropdownMenuItem(
+                                text = { Text(p.uppercase()) },
+                                onClick = { viewModel.updatePriority(p); expandedPriority = false })
+                        }
+                    }
                 }
 
                 var expandedStatus by remember { mutableStateOf(false) }
@@ -271,7 +259,7 @@ fun AddEditTodoScreen(
                 value = state.title,
                 onValueChange = { viewModel.updateTitle(it) },
                 label = { Text(stringResource(R.string.title_hint)) },
-                enabled = !state.isEditing,
+//                enabled = !state.isEditing,
                 minLines = 2,
                 maxLines = 3,
                 supportingText = { Text("${state.title.length}/25") },
@@ -469,7 +457,7 @@ private fun SubtaskRow(
             ),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedContainerColor = if (subtask.isDone) OffWhite else androidx.compose.ui.graphics.Color.Transparent,
-                focusedContainerColor = if (subtask.isDone) OffWhite else androidx.compose.ui.graphics.Color.Transparent
+                focusedContainerColor = if (subtask.isDone) OffWhite else Color.Transparent
             ),
             modifier = Modifier.weight(1f)
         )
@@ -491,9 +479,9 @@ private fun AttachmentRow(
     onDelete: (() -> Unit)?
 ) {
     val isImage = mimeType?.startsWith("image/") == true
-    val imagePainter = when {
-        previewUri != null -> rememberAsyncImagePainter(previewUri)
-        previewUrl != null -> rememberAsyncImagePainter(previewUrl)
+    val imageModel: Any? = when {
+        previewUri != null -> previewUri
+        previewUrl != null -> previewUrl
         else -> null
     }
 
@@ -504,24 +492,22 @@ private fun AttachmentRow(
             .border(0.5.dp, GrayLight, MaterialTheme.shapes.extraSmall)
             .padding(8.dp)
     ) {
-        if (isImage && imagePainter != null) {
-            androidx.compose.foundation.Image(
-                painter = imagePainter,
-                contentDescription = name,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                modifier = Modifier
-                    .size(56.dp)
-                    .border(0.5.dp, GrayLight, MaterialTheme.shapes.extraSmall)
-            )
-        } else {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(56.dp)
-                    .border(0.5.dp, GrayLight, MaterialTheme.shapes.extraSmall)
-            ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(56.dp)
+                .border(0.5.dp, GrayLight, MaterialTheme.shapes.extraSmall)
+        ) {
+            if (isImage && imageModel != null) {
+                AsyncImage(
+                    model = imageModel,
+                    contentDescription = name,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
                 Icon(
-                    Icons.Default.Add,
+                    painterResource(R.drawable.filter),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
                     tint = GraySecondary
@@ -553,7 +539,7 @@ private fun AttachmentRow(
 private fun formatForDisplay(isoDate: String): String {
     return try {
         Instant.parse(isoDate).atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+            .format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
     } catch (e: Exception) {
         isoDate
     }

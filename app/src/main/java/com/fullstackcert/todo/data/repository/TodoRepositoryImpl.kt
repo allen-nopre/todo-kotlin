@@ -35,13 +35,13 @@ class TodoRepositoryImpl @Inject constructor(
     override suspend fun createTodo(
         title: String, details: String?, dueDate: String,
         priority: String, status: String, subtasks: List<Subtask>,
-        completedDate: String
+        completedDate: String?
     ): Resource<Todo> = safeApiCall {
         val dto = CreateTodoRequestDto(
             title = title, details = details, dueDate = dueDate,
             priority = priority, status = status,
             subtasks = subtasks.map { SubtaskDto(id = it.id, title = it.title, isDone = it.isDone) },
-            completedDate = completedDate.ifBlank { null }
+            completedDate = completedDate?.ifBlank { null }
         )
         val r = api.createTodo(dto)
         if (r.isSuccessful) Resource.Success(r.body()!!.data.toDomain())
@@ -49,12 +49,13 @@ class TodoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateTodo(
-        id: Int, details: String?, dueDate: String?,
-        completedDate: String?, status: String?, subtasks: List<Subtask>?
+        id: Int, title: String?, details: String?, dueDate: String?,
+        completedDate: String?, status: String?, priority: String?, subtasks: List<Subtask>?
     ): Resource<Todo> = safeApiCall {
         val dto = UpdateTodoRequestDto(
+            title = title,
             details = details, dueDate = dueDate,
-            completedDate = completedDate, status = status,
+            completedDate = completedDate, status = status, priority = priority,
             subtasks = subtasks?.map { SubtaskDto(id = it.id, title = it.title, isDone = it.isDone) }
         )
         val r = api.updateTodo(id, dto)

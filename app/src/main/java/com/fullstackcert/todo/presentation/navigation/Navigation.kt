@@ -1,6 +1,7 @@
 package com.fullstackcert.todo.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -64,7 +65,9 @@ fun TodoNavHost() {
         }
 
         composable(Routes.TODO_LIST) { backStackEntry ->
-            val currentEntry = backStackEntry
+            val refreshed = backStackEntry.savedStateHandle
+                .getStateFlow("refreshed", false)
+                .collectAsState()
             TodoListScreen(
                 onNavigateToDetail = { id -> navController.navigate(Routes.todoDetail(id)) },
                 onNavigateToAdd = { navController.navigate(Routes.ADD_TODO) },
@@ -73,24 +76,39 @@ fun TodoNavHost() {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                refreshTrigger = currentEntry
+                refreshTrigger = refreshed.value,
+                onRefreshConsumed = {
+                    backStackEntry.savedStateHandle["refreshed"] = false
+                }
             )
         }
 
         composable(
             Routes.TODO_DETAIL,
             arguments = listOf(navArgument("todoId") { type = NavType.IntType })
-        ) {
+        ) { backStackEntry ->
+            val refreshed = backStackEntry.savedStateHandle
+                .getStateFlow("refreshed", false)
+                .collectAsState()
             TodoDetailScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToEdit = { id -> navController.navigate(Routes.editTodo(id)) }
+                onNavigateToEdit = { id -> navController.navigate(Routes.editTodo(id)) },
+                refreshTrigger = refreshed.value,
+                onRefreshConsumed = {
+                    backStackEntry.savedStateHandle["refreshed"] = false
+                }
             )
         }
 
         composable(Routes.ADD_TODO) {
             AddEditTodoScreen(
                 todoId = null,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("refreshed", true)
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -101,7 +119,12 @@ fun TodoNavHost() {
             val todoId = backStackEntry.arguments?.getInt("todoId")
             AddEditTodoScreen(
                 todoId = todoId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("refreshed", true)
+                    navController.popBackStack()
+                }
             )
         }
     }

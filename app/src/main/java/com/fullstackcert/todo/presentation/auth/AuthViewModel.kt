@@ -19,6 +19,7 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isAuthenticated: Boolean = false,
+    val isSessionChecked: Boolean = false,
     val registrationSuccess: Boolean = false,
     val savedUsername: String = "",
     val rememberMe: Boolean = false,
@@ -47,7 +48,8 @@ class AuthViewModel @Inject constructor(
 
     fun checkSession() {
         viewModelScope.launch {
-            _state.update { it.copy(isAuthenticated = checkSessionUseCase()) }
+            val authenticated = checkSessionUseCase()
+            _state.update { it.copy(isAuthenticated = authenticated, isSessionChecked = true) }
         }
     }
 

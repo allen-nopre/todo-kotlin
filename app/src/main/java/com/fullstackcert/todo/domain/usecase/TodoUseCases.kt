@@ -20,15 +20,15 @@ class CreateTodoUseCase @Inject constructor(private val repo: TodoRepository) {
     suspend operator fun invoke(
         title: String, details: String?, dueDate: String,
         priority: String, status: String, subtasks: List<Subtask>,
-        completedDate: String = ""
+        completedDate: String? = null
     ): Resource<Todo> = repo.createTodo(title, details, dueDate, priority, status, subtasks, completedDate)
 }
 
 class UpdateTodoUseCase @Inject constructor(private val repo: TodoRepository) {
     suspend operator fun invoke(
-        id: Int, details: String?, dueDate: String?,
-        completedDate: String?, status: String?, subtasks: List<Subtask>?
-    ): Resource<Todo> = repo.updateTodo(id, details, dueDate, completedDate, status, subtasks)
+        id: Int, title: String?, details: String?, dueDate: String?,
+        completedDate: String?, status: String?, priority: String?, subtasks: List<Subtask>?
+    ): Resource<Todo> = repo.updateTodo(id, title, details, dueDate, completedDate, status, priority, subtasks)
 }
 
 class DeleteTodoUseCase @Inject constructor(private val repo: TodoRepository) {

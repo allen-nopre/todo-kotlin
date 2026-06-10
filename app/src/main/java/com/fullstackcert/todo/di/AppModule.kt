@@ -1,5 +1,12 @@
 package com.fullstackcert.todo.di
 
+import android.content.Context
+import coil.ImageLoader
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import com.fullstackcert.todo.BuildConfig
 import com.fullstackcert.todo.data.local.SessionManager
 import com.fullstackcert.todo.data.remote.api.TodoApiService
@@ -7,10 +14,6 @@ import com.fullstackcert.todo.data.repository.AuthRepositoryImpl
 import com.fullstackcert.todo.data.repository.TodoRepositoryImpl
 import com.fullstackcert.todo.domain.repository.AuthRepository
 import com.fullstackcert.todo.domain.repository.TodoRepository
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -72,4 +75,14 @@ object AppModule {
     @Singleton
     fun provideTodoRepository(api: TodoApiService): TodoRepository =
         TodoRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideImageLoader(
+        @ApplicationContext context: Context,
+        okHttpClient: OkHttpClient
+    ): ImageLoader =
+        ImageLoader.Builder(context)
+            .okHttpClient(okHttpClient)
+            .build()
 }

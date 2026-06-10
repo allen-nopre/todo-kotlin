@@ -37,6 +37,7 @@ data class AddEditState(
     val isEditing: Boolean = false,
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
+    val toast: String? = null,
     val error: String? = null,
     val existingTodo: Todo? = null
 )
@@ -149,10 +150,12 @@ class AddEditTodoViewModel @Inject constructor(
             val result = if (s.isEditing) {
                 updateTodoUseCase(
                     id = s.existingTodo!!.id,
+                    title = s.title,
                     details = s.details.ifBlank { null },
                     dueDate = s.dueDate,
                     completedDate = s.completedDate,
                     status = s.status,
+                    priority = s.priority,
                     subtasks = subtasks
                 )
             } else {
@@ -163,15 +166,15 @@ class AddEditTodoViewModel @Inject constructor(
                     priority = s.priority,
                     status = s.status,
                     subtasks = subtasks,
-                    completedDate = s.completedDate ?: ""
+                    completedDate = s.completedDate?.ifBlank { null }
                 )
             }
             when (result) {
                 is Resource.Success -> {
                     val savedTodoId = result.data.id
-                    // Upload any pending attachments from create mode
                     val pending = _state.value.pendingAttachments
-                    _state.update { it.copy(isLoading = false, isSaved = pending.isEmpty(), pendingAttachments = emptyList()) }
+                    val toastMsg = if (s.isEditing) "Todo updated" else "Todo created"
+                    _state.update { it.copy(isLoading = false, isSaved = pending.isEmpty(), pendingAttachments = emptyList(), toast = toastMsg) }
                     if (pending.isNotEmpty()) {
                         pending.forEach { p ->
                             uploadAttachmentUseCase(savedTodoId, p.file, p.mimeType)
@@ -185,4 +188,5 @@ class AddEditTodoViewModel @Inject constructor(
     }
 
     fun clearError() { _state.update { it.copy(error = null) } }
+    fun clearToast() { _state.update { it.copy(toast = null) } }
 }
