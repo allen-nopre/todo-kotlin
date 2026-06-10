@@ -5,6 +5,7 @@ import com.fullstackcert.todo.data.mapper.toDomain
 import com.fullstackcert.todo.data.remote.api.TodoApiService
 import com.fullstackcert.todo.data.remote.dto.LoginRequestDto
 import com.fullstackcert.todo.data.remote.dto.RegisterRequestDto
+import com.fullstackcert.todo.data.remote.dto.SocialLoginRequestDto
 import com.fullstackcert.todo.domain.model.AuthResult
 import com.fullstackcert.todo.domain.model.User
 import com.fullstackcert.todo.domain.repository.AuthRepository
@@ -44,6 +45,28 @@ class AuthRepositoryImpl @Inject constructor(
         api.logout()
         sessionManager.clearSession()
         Resource.Success(Unit)
+    }
+
+    override suspend fun loginWithGoogle(idToken: String): Resource<AuthResult> = safeApiCall {
+        val response = api.loginWithGoogle(SocialLoginRequestDto(idToken))
+        if (response.isSuccessful) {
+            val body = response.body()!!
+            sessionManager.saveSession(body.token!!)
+            Resource.Success(AuthResult(user = body.user.toDomain(), token = body.token))
+        } else {
+            Resource.Error(parseError(response.errorBody()?.string()))
+        }
+    }
+
+    override suspend fun loginWithFacebook(accessToken: String): Resource<AuthResult> = safeApiCall {
+        val response = api.loginWithFacebook(SocialLoginRequestDto(accessToken))
+        if (response.isSuccessful) {
+            val body = response.body()!!
+            sessionManager.saveSession(body.token!!)
+            Resource.Success(AuthResult(user = body.user.toDomain(), token = body.token))
+        } else {
+            Resource.Error(parseError(response.errorBody()?.string()))
+        }
     }
 
     override suspend fun getSavedCredentials(): Pair<String, Boolean> =

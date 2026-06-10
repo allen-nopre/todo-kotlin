@@ -7,6 +7,7 @@ import com.fullstackcert.todo.domain.usecase.GetSavedCredentialsUseCase
 import com.fullstackcert.todo.domain.usecase.LoginUseCase
 import com.fullstackcert.todo.domain.usecase.LogoutUseCase
 import com.fullstackcert.todo.domain.usecase.RegisterUseCase
+import com.fullstackcert.todo.domain.usecase.SocialLoginUseCase
 import com.fullstackcert.todo.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +34,8 @@ class AuthViewModel @Inject constructor(
     private val registerUseCase: RegisterUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val checkSessionUseCase: CheckSessionUseCase,
-    private val getSavedCredentialsUseCase: GetSavedCredentialsUseCase
+    private val getSavedCredentialsUseCase: GetSavedCredentialsUseCase,
+    private val socialLoginUseCase: SocialLoginUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthUiState())
@@ -92,6 +94,30 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    fun setError(message: String) {
+        _state.update { it.copy(error = message) }
+    }
+
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            when (val result = socialLoginUseCase.loginWithGoogle(idToken)) {
+                is Resource.Success -> _state.update { it.copy(isLoading = false, isAuthenticated = true) }
+                is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
+            }
+        }
+    }
+
+    fun loginWithFacebook(accessToken: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            when (val result = socialLoginUseCase.loginWithFacebook(accessToken)) {
+                is Resource.Success -> _state.update { it.copy(isLoading = false, isAuthenticated = true) }
+                is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
+            }
+        }
     }
 
     fun resetRegistration() {

@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 interface AuthRepository {
     suspend fun register(username: String, password: String): Resource<User>
     suspend fun login(username: String, password: String, rememberMe: Boolean = false): Resource<AuthResult>
+    suspend fun loginWithGoogle(idToken: String): Resource<AuthResult>
+    suspend fun loginWithFacebook(accessToken: String): Resource<AuthResult>
     suspend fun getSavedCredentials(): Pair<String, Boolean>
     suspend fun logout(): Resource<Unit>
     fun getToken(): Flow<String?>

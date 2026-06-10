@@ -1,12 +1,13 @@
 package com.fullstackcert.todo.presentation.auth
 
-import androidx.compose.foundation.background
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -14,8 +15,19 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
 import com.fullstackcert.todo.R
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -28,6 +40,25 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val credentialManager = remember { CredentialManager.create(context) }
+
+    // Facebook Login setup
+    val callbackManager = remember { CallbackManager.Factory.create() }
+    DisposableEffect(Unit) {
+        LoginManager.getInstance().registerCallback(callbackManager,
+            object : FacebookCallback<LoginResult> {
+                override fun onSuccess(result: LoginResult) {
+                    viewModel.loginWithFacebook(result.accessToken.token)
+                }
+                override fun onCancel() {}
+                override fun onError(error: FacebookException) {}
+            }
+        )
+        onDispose { LoginManager.getInstance().unregisterCallback(callbackManager) }
+    }
 
     LaunchedEffect(state.savedUsername, state.rememberMe) {
         if (state.savedUsername.isNotBlank()) {
@@ -82,10 +113,7 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Checkbox(
-                    checked = rememberMe,
-                    onCheckedChange = { rememberMe = it }
-                )
+                Checkbox(checked = rememberMe, onCheckedChange = { rememberMe = it })
                 Text(stringResource(R.string.remember_me), style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -103,9 +131,7 @@ fun LoginScreen(
             val annotatedText = buildAnnotatedString {
                 append("Don't have an account? ")
                 pushStringAnnotation(tag = "SIGNUP", annotation = "signup")
-                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                    append("Sign up")
-                }
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("Sign up") }
                 pop()
             }
             ClickableText(
@@ -118,10 +144,7 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
                     text = stringResource(R.string.or_divider),
@@ -134,7 +157,29 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedButton(
-                onClick = { },
+                onClick = {
+                    scope.launch {
+                        try {
+                            val googleIdOption = GetGoogleIdOption.Builder()
+                                .setFilterByAuthorizedAccounts(false)
+                                .setServerClientId(context.getString(R.string.google_web_client_id))
+                                .build()
+                            val request = GetCredentialRequest.Builder()
+                                .addCredentialOption(googleIdOption)
+                                .build()
+                            val result = credentialManager.getCredential(
+                                request = request,
+                                context = context as ComponentActivity
+                            )
+                            val googleIdToken = GoogleIdTokenCredential
+                                .createFrom(result.credential.data)
+                                .idToken
+                            viewModel.loginWithGoogle(googleIdToken)
+                        } catch (e: GetCredentialException) {
+                            snackbarHostState.showSnackbar("Google sign-in failed: ${e.message}")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
@@ -149,7 +194,13 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = { },
+                onClick = {
+                    LoginManager.getInstance().logInWithReadPermissions(
+                        context as ComponentActivity,
+                        callbackManager,
+                        listOf("email", "public_profile")
+                    )
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(

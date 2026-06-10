@@ -27,3 +27,8 @@ class CheckSessionUseCase @Inject constructor(private val repo: AuthRepository) 
 class GetSavedCredentialsUseCase @Inject constructor(private val repo: AuthRepository) {
     suspend operator fun invoke(): Pair<String, Boolean> = repo.getSavedCredentials()
 }
+
+class SocialLoginUseCase @Inject constructor(private val repo: AuthRepository) {
+    suspend fun loginWithGoogle(idToken: String): Resource<AuthResult> = repo.loginWithGoogle(idToken)
+    suspend fun loginWithFacebook(accessToken: String): Resource<AuthResult> = repo.loginWithFacebook(accessToken)
+}

@@ -16,6 +16,12 @@ interface TodoApiService {
     @POST("logout")
     suspend fun logout(): Response<MessageResponseDto>
 
+    @POST("auth/google")
+    suspend fun loginWithGoogle(@Body request: SocialLoginRequestDto): Response<AuthResponseDto>
+
+    @POST("auth/facebook")
+    suspend fun loginWithFacebook(@Body request: SocialLoginRequestDto): Response<AuthResponseDto>
+
     @GET("todos")
     suspend fun getTodos(): Response<TodoListResponseDto>
 
