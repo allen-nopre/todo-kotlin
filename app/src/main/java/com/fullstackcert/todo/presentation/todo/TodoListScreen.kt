@@ -1,6 +1,7 @@
 package com.fullstackcert.todo.presentation.todo
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
@@ -320,80 +321,90 @@ fun TodoListScreen(
                     title = { Text(stringResource(R.string.my_todos)) },
                     actions = {                    }
                 )
-                if (true) {
-                    HorizontalDivider()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { showFilterSheet = true }) {
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box {
+                        IconButton(
+                            onClick = { showFilterSheet = true },
+                            modifier = Modifier
+                                .border(0.5.dp, Color(0xFFBDBDBD), RoundedCornerShape(4.dp))
+                                .then(if (state.filterPriority != null || state.filterStatus != null) Modifier.background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)) else Modifier)
+                        ) {
                             Icon(
                                 painterResource(R.drawable.filter),
                                 contentDescription = stringResource(R.string.filter)
                             )
                         }
-                        state.filterPriority?.let { p ->
-                            FilterChip(
-                                selected = true,
-                                onClick = { todoViewModel.setFilterPriority(null) },
-                                label = {
-                                    Text(
-                                        p.name.lowercase().replaceFirstChar { it.uppercase() },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF757575)
-                                    )
-                                },
-                                trailingIcon = {
-                                    Icon(
-                                        painterResource(R.drawable.cancel),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = Color(0xFF757575)
-                                    )
-                                },
-                                modifier = Modifier.height(28.dp),
-                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                        state.filterStatus?.let { s ->
-                            FilterChip(
-                                selected = true,
-                                onClick = { todoViewModel.setFilterStatus(null) },
-                                label = {
-                                    Text(
-                                        s.name.replace("_", " ").lowercase()
-                                            .replaceFirstChar { it.uppercase() },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF757575)
-                                    )
-                                },
-                                trailingIcon = {
-                                    Icon(
-                                        painterResource(R.drawable.cancel),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = Color(0xFF757575)
-                                    )
-                                },
-                                modifier = Modifier.height(28.dp),
-                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White)
-                            )
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        Box {
-                            IconButton(onClick = { showSortSheet = true }) {
-                                Icon(
-                                    painterResource(R.drawable.sort),
-                                    contentDescription = stringResource(R.string.sort)
+                    }
+                    state.filterPriority?.let { p ->
+                        FilterChip(
+                            selected = true,
+                            onClick = { todoViewModel.setFilterPriority(null) },
+                            label = {
+                                Text(
+                                    p.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF757575)
                                 )
-                            }
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.cancel),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color(0xFF757575)
+                                )
+                            },
+                            modifier = Modifier.height(28.dp),
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    state.filterStatus?.let { s ->
+                        FilterChip(
+                            selected = true,
+                            onClick = { todoViewModel.setFilterStatus(null) },
+                            label = {
+                                Text(
+                                    s.name.replace("_", " ").lowercase()
+                                        .replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF757575)
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.cancel),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color(0xFF757575)
+                                )
+                            },
+                            modifier = Modifier.height(28.dp),
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Box {
+                        IconButton(
+                            onClick = { showSortSheet = true },
+                            modifier = Modifier
+                                .border(0.5.dp, Color(0xFFBDBDBD), RoundedCornerShape(4.dp))
+                                .then(if (state.sortBy != SortBy.NONE) Modifier.background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)) else Modifier)
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.sort),
+                                contentDescription = stringResource(R.string.sort)
+                            )
                         }
                     }
-                    HorizontalDivider()
                 }
+                HorizontalDivider()
             }
         },
         bottomBar = {
