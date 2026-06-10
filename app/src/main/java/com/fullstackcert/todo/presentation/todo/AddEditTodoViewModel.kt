@@ -96,7 +96,7 @@ class AddEditTodoViewModel @Inject constructor(
     }
     fun updateCompletedDate(value: String?) { _state.update { it.copy(completedDate = value) } }
 
-    fun addSubtask() { _state.update { it.copy(subtasks = it.subtasks + SubtaskInput()) } }
+    fun addSubtask() { if (_state.value.subtasks.size < 10) _state.update { it.copy(subtasks = it.subtasks + SubtaskInput()) } }
     fun updateSubtaskTitle(index: Int, title: String) {
         _state.update {
             val list = it.subtasks.toMutableList()
@@ -108,7 +108,11 @@ class AddEditTodoViewModel @Inject constructor(
         _state.update {
             val list = it.subtasks.toMutableList()
             list[index] = list[index].copy(isDone = !list[index].isDone)
-            it.copy(subtasks = list)
+            val nonEmpty = list.filter { s -> s.title.isNotBlank() }
+            val allDone = nonEmpty.isNotEmpty() && nonEmpty.all { s -> s.isDone }
+            val newStatus = if (allDone) "completed" else if (it.status == "completed") "in_progress" else it.status
+            val newCompletedDate = if (allDone) Instant.now().toString() else if (it.status == "completed") null else it.completedDate
+            it.copy(subtasks = list, status = newStatus, completedDate = newCompletedDate)
         }
     }
     fun removeSubtask(index: Int) {

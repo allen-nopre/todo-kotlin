@@ -86,7 +86,7 @@
     <string name="details_hint">Details</string>
     <string name="select_due_date">Select Due Date</string>
     <string name="due_date_selected">Due: %s</string>
-    <string name="set_completed_date">Set Completed Date</string>
+    <string name="set_completed_date">Completed Date</string>
     <string name="completed_date_selected">Completed: %s</string>
     <string name="select_completion_date">Select completion date</string>
     <string name="select_due_date_hint">Select due date</string>

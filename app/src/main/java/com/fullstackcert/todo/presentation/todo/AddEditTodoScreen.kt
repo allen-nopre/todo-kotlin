@@ -51,9 +51,22 @@ fun AddEditTodoScreen(
     var showDueDatePicker by remember { mutableStateOf(false) }
     val dueDateMillis = runCatching { Instant.parse(state.dueDate).toEpochMilli() }.getOrNull()
 
+    val totalAttachments = state.attachments.size + state.pendingAttachments.size
+
     val filePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let {
+                if (totalAttachments >= 5) {
+                    Toast.makeText(context, "Maximum of 5 image attachments allowed.", Toast.LENGTH_LONG).show()
+                    return@let
+                }
+
+                val mimeType = context.contentResolver.getType(it) ?: ""
+                if (!mimeType.startsWith("image/")) {
+                    Toast.makeText(context, "Only image files are allowed.", Toast.LENGTH_LONG).show()
+                    return@let
+                }
+
                 val fileSize = context.contentResolver.query(
                     it, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null
                 )?.use { cursor ->
@@ -65,7 +78,6 @@ fun AddEditTodoScreen(
                     return@let
                 }
 
-                val mimeType = context.contentResolver.getType(it) ?: "application/octet-stream"
                 val inputStream = context.contentResolver.openInputStream(it) ?: return@let
                 val fileName = it.lastPathSegment ?: "attachment"
                 val tempFile = File(context.cacheDir, fileName)
@@ -294,45 +306,57 @@ fun AddEditTodoScreen(
             )
 
             // Attachments
-            Text(stringResource(R.string.attachments), style = MaterialTheme.typography.titleSmall)
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    readOnly = true,
-                    placeholder = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.filter),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                stringResource(R.string.browse_file_to_attach),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    trailingIcon = {
-                        if (state.isLoading && state.existingTodo != null) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.attachments), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "${state.attachments.size + state.pendingAttachments.size}/5",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (totalAttachments >= 5) MaterialTheme.colorScheme.error else GraySecondary
                 )
-                // Transparent overlay to capture taps reliably
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { filePicker.launch("*/*") }
-                )
+            }
+            if (totalAttachments < 5) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.filter),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    "Browse images to attach (${5 - totalAttachments} remaining)",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        trailingIcon = {
+                            if (state.isLoading && state.existingTodo != null) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { filePicker.launch("image/*") }
+                    )
+                }
             }
             val allAttachments = state.attachments
             val pendingAttachments = state.pendingAttachments
@@ -370,9 +394,14 @@ fun AddEditTodoScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(R.string.subtasks), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "${state.subtasks.size}/10",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.subtasks.size >= 10) MaterialTheme.colorScheme.error else GraySecondary
+                )
                 OutlinedButton(
                     onClick = { viewModel.addSubtask() },
-                    enabled = state.status != "completed"
+                    enabled = state.status != "completed" && state.subtasks.size < 10
                 ) {
                     Icon(
                         Icons.Default.Add,
