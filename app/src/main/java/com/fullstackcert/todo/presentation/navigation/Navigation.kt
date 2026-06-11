@@ -1,6 +1,7 @@
 package com.fullstackcert.todo.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -13,6 +14,7 @@ import com.fullstackcert.todo.presentation.auth.SplashScreen
 import com.fullstackcert.todo.presentation.todo.AddEditTodoScreen
 import com.fullstackcert.todo.presentation.todo.TodoDetailScreen
 import com.fullstackcert.todo.presentation.todo.TodoListScreen
+import com.fullstackcert.todo.utils.AuthEventBus
 
 object Routes {
     const val SPLASH = "splash"
@@ -30,6 +32,14 @@ object Routes {
 @Composable
 fun TodoNavHost() {
     val navController = rememberNavController()
+
+    LaunchedEffect(Unit) {
+        AuthEventBus.unauthorizedEvent.collect {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = Routes.SPLASH) {
         composable(Routes.SPLASH) {

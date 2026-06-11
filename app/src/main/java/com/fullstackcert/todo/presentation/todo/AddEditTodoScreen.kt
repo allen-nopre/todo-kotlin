@@ -384,14 +384,14 @@ fun AddEditTodoScreen(
                             onDelete = { viewModel.deleteAttachment(attachment.id) }
                         )
                     }
-                    pendingAttachments.forEach { pending ->
+                    pendingAttachments.forEachIndexed { index, pending ->
                         AttachmentRow(
                             name = pending.file.name,
                             size = null,
                             mimeType = pending.mimeType,
                             previewUrl = null,
                             previewUri = pending.uri,
-                            onDelete = null
+                            onDelete = { viewModel.removePendingAttachment(index) }
                         )
                     }
                 }
@@ -424,6 +424,30 @@ fun AddEditTodoScreen(
                     Text(stringResource(R.string.new_subtask))
                 }
             }
+
+            var subtaskToDelete by remember { mutableStateOf<Pair<Int, String>?>(null) }
+
+            subtaskToDelete?.let { (index, name) ->
+                AlertDialog(
+                    onDismissRequest = { subtaskToDelete = null },
+                    title = { Text("Delete Subtask") },
+                    text = { Text("Delete this subtask?\n\"${name.ifBlank { "Untitled" }}\"") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.removeSubtask(index)
+                            subtaskToDelete = null
+                        }) {
+                            Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { subtaskToDelete = null }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                )
+            }
+
             state.subtasks.forEachIndexed { index, subtask ->
                 if (index == 0) {
                     Row(
@@ -450,7 +474,7 @@ fun AddEditTodoScreen(
                     subtask = subtask,
                     onTitleChange = { viewModel.updateSubtaskTitle(index, it) },
                     onToggleDone = { viewModel.toggleSubtaskDone(index) },
-                    onDelete = { viewModel.removeSubtask(index) }
+                    onDelete = { subtaskToDelete = index to subtask.title }
                 )
             }
 

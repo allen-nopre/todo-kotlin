@@ -120,6 +120,10 @@ class AddEditTodoViewModel @Inject constructor(
         _state.update { it.copy(subtasks = it.subtasks.toMutableList().also { l -> l.removeAt(index) }) }
     }
 
+    fun removePendingAttachment(index: Int) {
+        _state.update { it.copy(pendingAttachments = it.pendingAttachments.toMutableList().also { l -> l.removeAt(index) }) }
+    }
+
     fun uploadAttachment(file: File, mimeType: String, uri: android.net.Uri) {
         val todoId = _state.value.existingTodo?.id
         if (todoId == null) {

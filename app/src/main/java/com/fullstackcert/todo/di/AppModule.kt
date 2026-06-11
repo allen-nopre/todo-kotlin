@@ -14,6 +14,7 @@ import com.fullstackcert.todo.data.repository.AuthRepositoryImpl
 import com.fullstackcert.todo.data.repository.TodoRepositoryImpl
 import com.fullstackcert.todo.domain.repository.AuthRepository
 import com.fullstackcert.todo.domain.repository.TodoRepository
+import com.fullstackcert.todo.utils.AuthEventBus
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -39,7 +40,12 @@ object AppModule {
                     addHeader("Authorization", "Bearer $token")
                 }
             }.build()
-            chain.proceed(request)
+            val response = chain.proceed(request)
+            if (response.code == 401) {
+                runBlocking { sessionManager.clearSession() }
+                AuthEventBus.sendUnauthorized()
+            }
+            response
         }
 
         return OkHttpClient.Builder()
