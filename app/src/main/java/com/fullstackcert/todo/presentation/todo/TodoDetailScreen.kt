@@ -22,6 +22,8 @@ import com.fullstackcert.todo.R
 import com.fullstackcert.todo.domain.model.Priority
 import com.fullstackcert.todo.domain.model.TodoStatus
 import com.fullstackcert.todo.ui.theme.*
+import com.fullstackcert.todo.presentation.common.NoConnectionScreen
+import com.fullstackcert.todo.presentation.common.isNetworkError
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -68,6 +70,11 @@ fun TodoDetailScreen(
                 }
             }
         )
+    }
+
+    if (state.error != null && isNetworkError(state.error)) {
+        NoConnectionScreen(onRetry = { viewModel.loadTodo() })
+        return
     }
 
     Scaffold(

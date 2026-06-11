@@ -38,7 +38,7 @@ class TodoDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             when (val result = getTodoByIdUseCase(todoId)) {
-                is Resource.Success -> _state.update { it.copy(isLoading = false, todo = result.data) }
+                is Resource.Success -> _state.update { it.copy(isLoading = false, error = null, todo = result.data) }
                 is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
             }
         }

@@ -34,6 +34,8 @@ import com.fullstackcert.todo.domain.model.Priority
 import com.fullstackcert.todo.domain.model.Todo
 import com.fullstackcert.todo.domain.model.TodoStatus
 import com.fullstackcert.todo.presentation.auth.AuthViewModel
+import com.fullstackcert.todo.presentation.common.NoConnectionScreen
+import com.fullstackcert.todo.presentation.common.isNetworkError
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -222,7 +224,9 @@ fun TodoListScreen(
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) todoViewModel.loadTodos()
+            if (event == Lifecycle.Event.ON_RESUME && !isNetworkError(todoViewModel.state.value.error)) {
+                todoViewModel.loadTodos()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -246,8 +250,10 @@ fun TodoListScreen(
 
     LaunchedEffect(state.error) {
         state.error?.let {
-            snackbarHostState.showSnackbar(it)
-            todoViewModel.clearError()
+            if (!isNetworkError(it)) {
+                snackbarHostState.showSnackbar(it)
+                todoViewModel.clearError()
+            }
         }
     }
 
@@ -311,6 +317,11 @@ fun TodoListScreen(
             },
             onDismiss = { showFilterSheet = false }
         )
+    }
+
+    if (state.error != null && isNetworkError(state.error)) {
+        NoConnectionScreen(onRetry = { todoViewModel.loadTodos() })
+        return
     }
 
     Scaffold(
@@ -484,7 +495,7 @@ fun TodoListScreen(
         ) {
             when {
                 state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                state.todos.isEmpty() -> Text(
+                state.todos.isEmpty() && !state.isLoading -> Text(
                     stringResource(R.string.no_todos),
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.bodyLarge

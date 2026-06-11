@@ -48,11 +48,11 @@ class TodoListViewModel @Inject constructor(
 
     fun loadTodos() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true) }
             when (val result = getTodosUseCase()) {
                 is Resource.Success -> {
                     allTodos = result.data
-                    _state.update { applyFiltersAndSort(it.copy(isLoading = false)) }
+                    _state.update { applyFiltersAndSort(it.copy(isLoading = false, error = null)) }
                 }
                 is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
             }

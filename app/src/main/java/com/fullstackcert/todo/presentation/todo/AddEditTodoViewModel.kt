@@ -63,6 +63,7 @@ class AddEditTodoViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isLoading = false,
+                            error = null,
                             isEditing = true,
                             title = todo.title,
                             details = todo.details ?: "",

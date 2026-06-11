@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,6 +30,7 @@ import com.facebook.login.LoginManager
 import com.facebook.login.LoginResult
 import com.fullstackcert.todo.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
@@ -260,22 +262,46 @@ fun RegisterScreen(
                     scope.launch {
                         try {
                             val googleIdOption = GetGoogleIdOption.Builder()
-                                .setFilterByAuthorizedAccounts(false)
+                                .setFilterByAuthorizedAccounts(true)
                                 .setServerClientId(context.getString(R.string.google_web_client_id))
+                                .setAutoSelectEnabled(true)
                                 .build()
                             val request = GetCredentialRequest.Builder()
                                 .addCredentialOption(googleIdOption)
                                 .build()
-                            val result = credentialManager.getCredential(
+                            val credResult = credentialManager.getCredential(
                                 request = request,
                                 context = context as ComponentActivity
                             )
-                            val googleIdToken = GoogleIdTokenCredential
-                                .createFrom(result.credential.data)
-                                .idToken
-                            viewModel.loginWithGoogle(googleIdToken)
+                            val credential = credResult.credential
+                            if (credential is CustomCredential &&
+                                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                            ) {
+                                val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                                viewModel.loginWithGoogle(idToken)
+                            }
                         } catch (e: GetCredentialException) {
-                            snackbarHostState.showSnackbar("Google sign-in failed: ${e.message}")
+                            try {
+                                val signInOption = GetSignInWithGoogleOption.Builder(
+                                    context.getString(R.string.google_web_client_id)
+                                ).build()
+                                val request = GetCredentialRequest.Builder()
+                                    .addCredentialOption(signInOption)
+                                    .build()
+                                val credResult = credentialManager.getCredential(
+                                    request = request,
+                                    context = context as ComponentActivity
+                                )
+                                val credential = credResult.credential
+                                if (credential is CustomCredential &&
+                                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                                ) {
+                                    val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                                    viewModel.loginWithGoogle(idToken)
+                                }
+                            } catch (e2: GetCredentialException) {
+                                snackbarHostState.showSnackbar("Google sign-in failed: ${e2.message}")
+                            }
                         }
                     }
                 },

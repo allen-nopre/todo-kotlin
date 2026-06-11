@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.fullstackcert.todo.R
+import com.fullstackcert.todo.presentation.common.NoConnectionScreen
+import com.fullstackcert.todo.presentation.common.isNetworkError
 import java.io.File
 import java.io.FileOutputStream
 import java.time.Instant
@@ -92,7 +94,12 @@ fun AddEditTodoScreen(
     }
     LaunchedEffect(state.isSaved) { if (state.isSaved) onNavigateBack() }
     LaunchedEffect(state.error) {
-        state.error?.let { snackbarHostState.showSnackbar(it); viewModel.clearError() }
+        state.error?.let {
+            if (!isNetworkError(it)) {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearError()
+            }
+        }
     }
 
     if (showDueDatePicker) {
@@ -111,6 +118,11 @@ fun AddEditTodoScreen(
                 TextButton(onClick = { showDueDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) { DatePicker(state = dpState) }
+    }
+
+    if (state.error != null && isNetworkError(state.error)) {
+        NoConnectionScreen(onRetry = { todoId?.let { viewModel.loadTodo(it) } })
+        return
     }
 
     Scaffold(
