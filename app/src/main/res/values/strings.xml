@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Todo App</string>
+    <string name="app_name">NavTask</string>
     <string name="facebook_app_id">YOUR_FACEBOOK_APP_ID</string>
     <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
     <string name="fb_login_protocol_scheme">fbYOUR_FACEBOOK_APP_ID</string>
@@ -21,6 +21,7 @@
 
     <!-- Register -->
     <string name="create_an_account">Create an account</string>
+    <string name="create_account_success_message">Account successfully created. Sign in to continue.</string>
     <string name="create_account_btn">Create Account</string>
     <string name="already_have_account">Already have an account? </string>
     <string name="sign_in_link">Sign in</string>
@@ -34,7 +35,7 @@
     <string name="strength_strong">Strong</string>
 
     <!-- Todo List -->
-    <string name="my_todos">My Todos</string>
+    <string name="my_todos">@string/app_name</string>
     <string name="no_todos">No todos yet. Tap + to create one.</string>
     <string name="selected_count">%d selected</string>
     <string name="filter">Filter</string>
@@ -67,10 +68,10 @@
     <string name="delete">Delete</string>
     <string name="back">Back</string>
     <string name="edit">Edit</string>
-    <string name="label_details">Details</string>
+    <string name="label_details">Details (Optional)</string>
     <string name="label_priority">Priority</string>
     <string name="label_status">Status</string>
-    <string name="label_created">Created</string>
+    <string name="label_created">Date Created</string>
     <string name="label_due_date">Due Date</string>
     <string name="label_completed">Completed</string>
     <string name="no_details">No details</string>
@@ -80,10 +81,10 @@
     <string name="failed_to_delete">Failed to delete</string>
 
     <!-- Add/Edit Todo -->
-    <string name="new_todo">New Todo</string>
-    <string name="edit_todo">Edit Todo</string>
+    <string name="new_todo">New Task</string>
+    <string name="edit_todo">Edit Task</string>
     <string name="title_hint">Title</string>
-    <string name="details_hint">Details</string>
+    <string name="details_hint">Details (Optional)</string>
     <string name="select_due_date">Select Due Date</string>
     <string name="due_date_selected">Due: %s</string>
     <string name="set_completed_date">Completed Date</string>

@@ -118,6 +118,11 @@ fun TodoNavHost() {
                         ?.savedStateHandle
                         ?.set("refreshed", true)
                     navController.popBackStack()
+                },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
@@ -132,6 +137,11 @@ fun TodoNavHost() {
                 onNavigateBack = {
                     navController.navigate(Routes.TODO_LIST) {
                         popUpTo(Routes.TODO_LIST) { inclusive = false }
+                    }
+                },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )

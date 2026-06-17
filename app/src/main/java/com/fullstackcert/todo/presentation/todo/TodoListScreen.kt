@@ -1,6 +1,7 @@
 package com.fullstackcert.todo.presentation.todo
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import android.widget.Toast
@@ -104,11 +105,12 @@ private fun SortBottomSheet(
                         label,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (tempSortBy != SortBy.NONE) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     )
                 }
             }
         }
+        HorizontalDivider()
         Button(
             onClick = { onApply(tempSortBy, tempSortOrder); onDismiss() },
             modifier = Modifier
@@ -196,6 +198,7 @@ private fun FilterBottomSheet(
                 }
             }
         }
+        HorizontalDivider()
         Button(
             onClick = { onApply(tempPriority, tempStatus); onDismiss() },
             modifier = Modifier
@@ -245,7 +248,9 @@ fun TodoListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.toast) {
-        state.toast?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); todoViewModel.clearToast() }
+        state.toast?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); todoViewModel.clearToast()
+        }
     }
 
     LaunchedEffect(state.error) {
@@ -288,7 +293,12 @@ fun TodoListScreen(
                 TextButton(onClick = {
                     showDeleteDialog = false
                     todoViewModel.deleteSelected()
-                }) { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) }
+                }) {
+                    Text(
+                        stringResource(R.string.delete),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
@@ -329,8 +339,20 @@ fun TodoListScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.my_todos)) },
-                    actions = {                    }
+                    title = { },
+                    navigationIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.logo_header),
+                            contentDescription = "App icon",
+                            modifier = Modifier.size(120.dp),
+                            tint = Color.White
+                        )
+                    },
+                    actions = { },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
                 HorizontalDivider()
                 Row(
@@ -344,7 +366,12 @@ fun TodoListScreen(
                             onClick = { showFilterSheet = true },
                             modifier = Modifier
                                 .border(0.5.dp, Color(0xFFBDBDBD), RoundedCornerShape(4.dp))
-                                .then(if (state.filterPriority != null || state.filterStatus != null) Modifier.background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)) else Modifier)
+                                .then(
+                                    if (state.filterPriority != null || state.filterStatus != null) Modifier.background(
+                                        Color(0xFFE0E0E0),
+                                        RoundedCornerShape(4.dp)
+                                    ) else Modifier
+                                )
                         ) {
                             Icon(
                                 painterResource(R.drawable.filter),
@@ -353,13 +380,14 @@ fun TodoListScreen(
                         }
                     }
                     state.filterPriority?.let { p ->
+                        Spacer(modifier = Modifier.width(4.dp))
                         FilterChip(
                             selected = true,
                             onClick = { todoViewModel.setFilterPriority(null) },
                             label = {
                                 Text(
                                     p.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelLarge,
                                     color = Color(0xFF757575)
                                 )
                             },
@@ -372,11 +400,14 @@ fun TodoListScreen(
                                 )
                             },
                             modifier = Modifier.height(28.dp),
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White)
+                            shape = RoundedCornerShape(50),
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White),
+                            border = BorderStroke(1.dp, Color.DarkGray)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                     state.filterStatus?.let { s ->
+                        Spacer(modifier = Modifier.width(4.dp))
                         FilterChip(
                             selected = true,
                             onClick = { todoViewModel.setFilterStatus(null) },
@@ -384,7 +415,7 @@ fun TodoListScreen(
                                 Text(
                                     s.name.replace("_", " ").lowercase()
                                         .replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelLarge,
                                     color = Color(0xFF757575)
                                 )
                             },
@@ -397,21 +428,37 @@ fun TodoListScreen(
                                 )
                             },
                             modifier = Modifier.height(28.dp),
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White)
+                            shape = RoundedCornerShape(50),
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color.White),
+                            border = BorderStroke(1.dp, Color.DarkGray)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    Box {
+                    Box(modifier = Modifier.padding(4.dp)) {
                         IconButton(
                             onClick = { showSortSheet = true },
                             modifier = Modifier
-                                .border(0.5.dp, Color(0xFFBDBDBD), RoundedCornerShape(4.dp))
-                                .then(if (state.sortBy != SortBy.NONE) Modifier.background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)) else Modifier)
+                                .border(
+                                    0.5.dp,
+                                    Color(0xFFBDBDBD),
+                                    RoundedCornerShape(4.dp)
+                                )
                         ) {
                             Icon(
                                 painterResource(R.drawable.sort),
                                 contentDescription = stringResource(R.string.sort)
                             )
+                        }
+                        if (state.sortBy != SortBy.NONE) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Cyan,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .size(8.dp)
+                                    .align(Alignment.CenterStart)
+                            ) {}
                         }
                     }
                 }
@@ -446,7 +493,10 @@ fun TodoListScreen(
                                             "${state.selectedIds.size}",
                                             color = White,
                                             style = MaterialTheme.typography.bodySmall,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            modifier = Modifier.padding(
+                                                horizontal = 6.dp,
+                                                vertical = 2.dp
+                                            )
                                         )
                                     }
                                 }
@@ -630,7 +680,7 @@ private fun TodoItem(
             ) {
                 todo.subtasks.forEach { subtask ->
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
@@ -639,15 +689,24 @@ private fun TodoItem(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(14.dp)
                         )
-                        Text(
-                            subtask.title,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (subtask.isDone) GraySecondary else CharcoalDark,
-                            textDecoration = if (subtask.isDone) TextDecoration.LineThrough else TextDecoration.None
-                        )
+                        Column {
+                            Text(
+                                if (subtask.isDone) "Done" else "Not Done",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = GraySecondary
+                            )
+                            Text(
+                                subtask.title,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (subtask.isDone) GraySecondary else CharcoalDark,
+                                textDecoration = if (subtask.isDone) TextDecoration.LineThrough else TextDecoration.None
+                            )
+                        }
                     }
                 }
+
             }
+
         }
     }
     HorizontalDivider()
@@ -716,7 +775,11 @@ private fun StatusChip(status: TodoStatus) {
 private fun getDueBadge(todo: Todo): Pair<String, Color>? {
     if (todo.status == TodoStatus.COMPLETED || todo.status == TodoStatus.CANCELLED) return null
     val now = Instant.now()
-    val due = try { Instant.parse(todo.dueDate) } catch (e: Exception) { return null }
+    val due = try {
+        Instant.parse(todo.dueDate)
+    } catch (e: Exception) {
+        return null
+    }
     val hoursUntilDue = ChronoUnit.HOURS.between(now, due)
     val todayDate = now.atZone(ZoneId.systemDefault()).toLocalDate()
     val dueDate = due.atZone(ZoneId.systemDefault()).toLocalDate()

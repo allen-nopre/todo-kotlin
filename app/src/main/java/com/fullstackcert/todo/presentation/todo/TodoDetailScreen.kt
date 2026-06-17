@@ -1,5 +1,6 @@
 package com.fullstackcert.todo.presentation.todo
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -92,7 +93,13 @@ fun TodoDetailScreen(
                             Icon(Icons.Default.Delete, stringResource(R.string.delete))
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         bottomBar = {
@@ -117,18 +124,12 @@ fun TodoDetailScreen(
                         selected = false,
                         onClick = { state.todo?.let { onNavigateToEdit(it.id) } },
                         icon = {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    painterResource(R.drawable.edit),
-                                    contentDescription = stringResource(R.string.edit),
-                                    tint = White,
-                                    modifier = Modifier.padding(12.dp)
-                                )
-                            }
+                            Icon(
+                                painterResource(R.drawable.edit),
+                                contentDescription = stringResource(R.string.edit),
+                                tint = GraySecondary,
+                                modifier = Modifier.padding(12.dp)
+                            )
                         },
                         label = null
                     )
@@ -148,9 +149,11 @@ fun TodoDetailScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             when {
                 state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 state.error != null -> Text(
@@ -242,41 +245,32 @@ fun TodoDetailScreen(
                         // Created - Due date on same row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(1.dp)
-                            ) {
-                                Text(
-                                    formatDateTime(todo.createdAt),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = GraySecondary
-                                )
-                            }
+                            Text(
+                                formatDateTime(todo.createdAt),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GraySecondary
+                            )
                             Text(
                                 "-",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = GraySecondary
                             )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(1.dp)
-                            ) {
+                            Text(
+                                formatDateTime(todo.dueDate),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GraySecondary
+                            )
+                            val badge = getDueDateBadge(todo.dueDate, todo.status)
+                            if (badge != null) {
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    formatDateTime(todo.dueDate),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = GraySecondary
+                                    badge.first,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = badge.second
                                 )
-                                val badge = getDueDateBadge(todo.dueDate, todo.status)
-                                if (badge != null) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        badge.first,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = badge.second
-                                    )
-                                }
                             }
                         }
 
@@ -350,11 +344,11 @@ fun TodoDetailScreen(
                                                 R.string.not_done
                                             ),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color =  GraySecondary
+                                            color = GraySecondary
                                         )
                                     }
                                 }
-                                HorizontalDivider(color = GrayLight, thickness = 0.5.dp)
+//                                HorizontalDivider(color = GrayLight, thickness = 0.5.dp)
                             }
                         }
                     }
@@ -367,7 +361,11 @@ fun TodoDetailScreen(
 private fun getDueDateBadge(dueDate: String, status: TodoStatus): Pair<String, Color>? {
     if (status == TodoStatus.COMPLETED || status == TodoStatus.CANCELLED) return null
     val now = Instant.now()
-    val due = try { Instant.parse(dueDate) } catch (e: Exception) { return null }
+    val due = try {
+        Instant.parse(dueDate)
+    } catch (e: Exception) {
+        return null
+    }
     val hoursUntilDue = ChronoUnit.HOURS.between(now, due)
     val todayDate = now.atZone(ZoneId.systemDefault()).toLocalDate()
     val dueDateLocal = due.atZone(ZoneId.systemDefault()).toLocalDate()

@@ -39,6 +39,8 @@ data class AddEditState(
     val isSaved: Boolean = false,
     val toast: String? = null,
     val error: String? = null,
+    val titleError: String? = null,
+    val dueDateError: String? = null,
     val existingTodo: Todo? = null
 )
 
@@ -83,9 +85,9 @@ class AddEditTodoViewModel @Inject constructor(
         }
     }
 
-    fun updateTitle(value: String) { if (value.length <= 25) _state.update { it.copy(title = value) } }
+    fun updateTitle(value: String) { if (value.length <= 25) _state.update { it.copy(title = value, titleError = null) } }
     fun updateDetails(value: String) { if (value.length <= 300) _state.update { it.copy(details = value) } }
-    fun updateDueDate(value: String) { _state.update { it.copy(dueDate = value) } }
+    fun updateDueDate(value: String) { _state.update { it.copy(dueDate = value, dueDateError = null) } }
     fun updatePriority(value: String) { _state.update { it.copy(priority = value) } }
     fun updateStatus(value: String) {
         _state.update {
@@ -101,11 +103,12 @@ class AddEditTodoViewModel @Inject constructor(
     fun updateSubtaskTitle(index: Int, title: String) {
         _state.update {
             val list = it.subtasks.toMutableList()
-            list[index] = list[index].copy(title = title)
+            list[index] = list[index].copy(title = title, isDone = if (title.isBlank()) false else list[index].isDone)
             it.copy(subtasks = list)
         }
     }
     fun toggleSubtaskDone(index: Int) {
+        if (_state.value.subtasks[index].title.isBlank()) return
         _state.update {
             val list = it.subtasks.toMutableList()
             list[index] = list[index].copy(isDone = !list[index].isDone)
@@ -155,9 +158,19 @@ class AddEditTodoViewModel @Inject constructor(
 
     fun save() {
         val s = _state.value
-        if (s.title.isBlank() || s.dueDate.isBlank()) {
-            _state.update { it.copy(error = "Title and due date are required") }
+        val titleErr = if (s.title.isBlank()) "Must not be empty" else null
+        val dueDateErr = if (s.dueDate.isBlank()) "Must be later than Date created" else null
+        if (titleErr != null || dueDateErr != null) {
+            _state.update { it.copy(titleError = titleErr, dueDateError = dueDateErr) }
             return
+        }
+        if (!s.isEditing && s.dueDate.isNotBlank()) {
+            val due = runCatching { Instant.parse(s.dueDate) }.getOrNull()
+            val created = runCatching { Instant.parse(s.createdDate) }.getOrNull()
+            if (due != null && created != null && !due.isAfter(created)) {
+                _state.update { it.copy(dueDateError = "Due date must be later than date created") }
+                return
+            }
         }
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }

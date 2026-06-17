@@ -1,10 +1,13 @@
 package com.fullstackcert.todo.presentation.auth
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
@@ -43,9 +47,14 @@ private fun isValidUsername(username: String) = ALLOWED_USERNAME_REGEX.matches(u
 
 private fun evaluateRules(password: String, username: String): List<PasswordRule> {
     return listOf(
-        PasswordRule("rule_no_name", username.isBlank() || !password.contains(username, ignoreCase = true)),
+        PasswordRule(
+            "rule_no_name",
+            username.isBlank() || !password.contains(username, ignoreCase = true)
+        ),
         PasswordRule("rule_min_length", password.length >= 8),
-        PasswordRule("rule_number_or_symbol", password.any { it.isDigit() || !it.isLetterOrDigit() })
+        PasswordRule(
+            "rule_number_or_symbol",
+            password.any { it.isDigit() || !it.isLetterOrDigit() })
     )
 }
 
@@ -61,6 +70,7 @@ private fun passwordStrength(password: String, username: String): Pair<Int, Colo
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onNavigateBack: () -> Unit,
@@ -70,6 +80,7 @@ fun RegisterScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var usernameSymbolError by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -77,11 +88,13 @@ fun RegisterScreen(
 
     val callbackManager = remember { CallbackManager.Factory.create() }
     DisposableEffect(Unit) {
-        LoginManager.getInstance().registerCallback(callbackManager,
+        LoginManager.getInstance().registerCallback(
+            callbackManager,
             object : FacebookCallback<LoginResult> {
                 override fun onSuccess(result: LoginResult) {
                     viewModel.loginWithFacebook(result.accessToken.token)
                 }
+
                 override fun onCancel() {}
                 override fun onError(error: FacebookException) {}
             }
@@ -105,6 +118,7 @@ fun RegisterScreen(
         }
     }
 
+
     LaunchedEffect(state.error) {
         state.error?.let {
             snackbarHostState.showSnackbar(it)
@@ -112,7 +126,26 @@ fun RegisterScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = {  },
+                navigationIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.logo_header),
+                        contentDescription = "App icon",
+                        modifier = Modifier.size(120.dp),
+                        tint = Color.White
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,7 +154,12 @@ fun RegisterScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(stringResource(R.string.create_an_account), style = MaterialTheme.typography.displaySmall)
+            Text(
+                if (state.registrationSuccess) stringResource(R.string.create_account_success_message)
+                else stringResource(R.string.create_an_account),
+                style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.align(Alignment.Start)
+            )
             Spacer(modifier = Modifier.height(32.dp))
 
             // Username field
@@ -145,10 +183,12 @@ fun RegisterScreen(
                             "Allowed: letters, numbers, spaces, ! # ( ) _ -",
                             color = MaterialTheme.colorScheme.error
                         )
+
                         state.usernameError != null -> Text(
                             state.usernameError!!,
                             color = MaterialTheme.colorScheme.error
                         )
+
                         else -> Text(
                             "Allowed: letters, numbers, spaces, ! # ( ) _ -",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -167,7 +207,15 @@ fun RegisterScreen(
                 },
                 label = { Text(stringResource(R.string.password)) },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -277,7 +325,8 @@ fun RegisterScreen(
                             if (credential is CustomCredential &&
                                 credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                             ) {
-                                val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                                val idToken =
+                                    GoogleIdTokenCredential.createFrom(credential.data).idToken
                                 viewModel.loginWithGoogle(idToken)
                             }
                         } catch (e: GetCredentialException) {
@@ -296,7 +345,8 @@ fun RegisterScreen(
                                 if (credential is CustomCredential &&
                                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                                 ) {
-                                    val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                                    val idToken =
+                                        GoogleIdTokenCredential.createFrom(credential.data).idToken
                                     viewModel.loginWithGoogle(idToken)
                                 }
                             } catch (e2: GetCredentialException) {

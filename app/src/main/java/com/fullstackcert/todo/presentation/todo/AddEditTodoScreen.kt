@@ -4,11 +4,13 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,13 +29,20 @@ import com.fullstackcert.todo.ui.theme.OffWhite
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.fullstackcert.todo.presentation.auth.AuthViewModel
 import coil.compose.AsyncImage
 import com.fullstackcert.todo.R
 import com.fullstackcert.todo.presentation.common.NoConnectionScreen
 import com.fullstackcert.todo.presentation.common.isNetworkError
+import com.fullstackcert.todo.ui.theme.Blue
 import java.io.File
 import java.io.FileOutputStream
 import java.time.Instant
@@ -45,11 +54,14 @@ import java.time.format.DateTimeFormatter
 fun AddEditTodoScreen(
     todoId: Int?,
     onNavigateBack: () -> Unit,
-    viewModel: AddEditTodoViewModel = hiltViewModel()
+    onLogout: () -> Unit = {},
+    viewModel: AddEditTodoViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     var showDueDatePicker by remember { mutableStateOf(false) }
     val dueDateMillis = runCatching { Instant.parse(state.dueDate).toEpochMilli() }.getOrNull()
 
@@ -59,13 +71,18 @@ fun AddEditTodoScreen(
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let {
                 if (totalAttachments >= 5) {
-                    Toast.makeText(context, "Maximum of 5 image attachments allowed.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        "Maximum of 5 image attachments allowed.",
+                        Toast.LENGTH_LONG
+                    ).show()
                     return@let
                 }
 
                 val mimeType = context.contentResolver.getType(it) ?: ""
                 if (!mimeType.startsWith("image/")) {
-                    Toast.makeText(context, "Only image files are allowed.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Only image files are allowed.", Toast.LENGTH_LONG)
+                        .show()
                     return@let
                 }
 
@@ -76,7 +93,8 @@ fun AddEditTodoScreen(
                 } ?: 0L
 
                 if (fileSize > 10 * 1024 * 1024) {
-                    Toast.makeText(context, "File size must not exceed 10MB.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "File size must not exceed 10MB.", Toast.LENGTH_LONG)
+                        .show()
                     return@let
                 }
 
@@ -90,7 +108,9 @@ fun AddEditTodoScreen(
 
     LaunchedEffect(todoId) { todoId?.let { viewModel.loadTodo(it) } }
     LaunchedEffect(state.toast) {
-        state.toast?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearToast() }
+        state.toast?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearToast()
+        }
     }
     LaunchedEffect(state.isSaved) { if (state.isSaved) onNavigateBack() }
     LaunchedEffect(state.error) {
@@ -115,7 +135,9 @@ fun AddEditTodoScreen(
                 }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDueDatePicker = false }) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = {
+                    showDueDatePicker = false
+                }) { Text(stringResource(R.string.cancel)) }
             }
         ) { DatePicker(state = dpState) }
     }
@@ -123,6 +145,26 @@ fun AddEditTodoScreen(
     if (state.error != null && isNetworkError(state.error)) {
         NoConnectionScreen(onRetry = { todoId?.let { viewModel.loadTodo(it) } })
         return
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text(stringResource(R.string.sign_out)) },
+            text = { Text(stringResource(R.string.sign_out_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    authViewModel.logout()
+                    onLogout()
+                }) { Text(stringResource(R.string.sign_out)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -134,35 +176,63 @@ fun AddEditTodoScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         bottomBar = {
             Column {
-                HorizontalDivider(color = Color(0xFFC7CED6), thickness = 0.5.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 0.5.dp)
                 BottomAppBar(
                     containerColor = Color.Transparent,
                     tonalElevation = 0.dp
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Button(
-                            onClick = { viewModel.save() },
-                            enabled = !state.isLoading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp)
-                        ) {
-                            if (state.isLoading) CircularProgressIndicator(
-                                modifier = Modifier.size(
-                                    20.dp
-                                ), color = White, strokeWidth = 2.dp
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = { },
+                        icon = {
+
+                        },
+                        label = null
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = {},
+                        icon = {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = { viewModel.save() },
+                                    enabled = !state.isLoading,
+                                ) {
+                                    if (state.isLoading) CircularProgressIndicator(
+                                        modifier = Modifier.size(
+                                            20.dp
+                                        ), color = White, strokeWidth = 2.dp
+                                    )
+                                    else Text(stringResource(if (state.isEditing) R.string.save else R.string.save))
+                                }
+                            }
+                        },
+                        label = null
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = { showLogoutDialog = true },
+                        icon = {
+                            Icon(
+                                painterResource(R.drawable.avatar),
+                                contentDescription = stringResource(R.string.sign_out)
                             )
-                            else Text(stringResource(if (state.isEditing) R.string.update else R.string.create))
-                        }
-                    }
+                        },
+                        label = null
+                    )
                 }
             }
         }
@@ -204,7 +274,9 @@ fun AddEditTodoScreen(
                             listOf("low", "high", "critical").forEach { p ->
                                 DropdownMenuItem(
                                     text = { Text(p.uppercase()) },
-                                    onClick = { viewModel.updatePriority(p); expandedPriority = false })
+                                    onClick = {
+                                        viewModel.updatePriority(p); expandedPriority = false
+                                    })
                             }
                         }
                     }
@@ -255,7 +327,9 @@ fun AddEditTodoScreen(
             // Completion date — shown as read-only when status is completed
             if (state.status == "completed") {
                 OutlinedTextField(
-                    value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else formatForDisplay(Instant.now().toString()),
+                    value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else formatForDisplay(
+                        Instant.now().toString()
+                    ),
                     onValueChange = {},
                     readOnly = true,
                     enabled = false,
@@ -270,9 +344,16 @@ fun AddEditTodoScreen(
                 onValueChange = { viewModel.updateTitle(it) },
                 label = { Text(stringResource(R.string.title_hint)) },
                 enabled = !state.isEditing,
+                isError = state.titleError != null,
                 minLines = 2,
                 maxLines = 3,
-                supportingText = { Text("${state.title.length}/25") },
+                supportingText = {
+                    if (state.titleError != null) Text(
+                        state.titleError!!,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    else Text("${state.title.length}/25")
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -293,8 +374,12 @@ fun AddEditTodoScreen(
                     value = if (state.dueDate.isNotBlank()) formatForDisplay(state.dueDate) else "",
                     onValueChange = {},
                     readOnly = true,
+                    isError = state.dueDateError != null,
                     label = { Text(stringResource(R.string.label_due_date)) },
                     placeholder = { Text("Select due date") },
+                    supportingText = if (state.dueDateError != null) {
+                        { Text(state.dueDateError!!, color = MaterialTheme.colorScheme.error) }
+                    } else null,
                     trailingIcon = {
                         IconButton(onClick = { showDueDatePicker = true }) {
                             Icon(Icons.Default.DateRange, contentDescription = null)
@@ -323,7 +408,10 @@ fun AddEditTodoScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.attachments), style = MaterialTheme.typography.titleSmall)
+                Text(
+                    stringResource(R.string.attachments),
+                    style = MaterialTheme.typography.titleSmall
+                )
                 Text(
                     "${state.attachments.size + state.pendingAttachments.size}/5",
                     style = MaterialTheme.typography.bodySmall,
@@ -437,7 +525,10 @@ fun AddEditTodoScreen(
                             viewModel.removeSubtask(index)
                             subtaskToDelete = null
                         }) {
-                            Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                            Text(
+                                stringResource(R.string.delete),
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     },
                     dismissButton = {
@@ -475,6 +566,23 @@ fun AddEditTodoScreen(
                     onTitleChange = { viewModel.updateSubtaskTitle(index, it) },
                     onToggleDone = { viewModel.toggleSubtaskDone(index) },
                     onDelete = { subtaskToDelete = index to subtask.title }
+                )
+            }
+            HorizontalDivider()
+            if (state.subtasks.isNotEmpty() && state.subtasks.all { it.isDone }) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    buildAnnotatedString {
+                        append("All Subtask are ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append("Done")
+                        }
+                        append("!")
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
             }
 
