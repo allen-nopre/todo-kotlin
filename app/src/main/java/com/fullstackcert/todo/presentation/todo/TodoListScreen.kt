@@ -287,6 +287,7 @@ fun TodoListScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
+            icon = { Icon(painterResource(R.drawable.alert), contentDescription = null, tint = Color.Red) },
             title = { Text("Delete Tasks") },
             text = { Text("${state.selectedIds.size} task${if (state.selectedIds.size != 1) "s" else ""} will be deleted.") },
             confirmButton = {

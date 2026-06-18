@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.fullstackcert.todo.presentation.auth.AuthViewModel
 import coil.compose.AsyncImage
@@ -247,21 +248,25 @@ fun AddEditTodoScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // Priority + Status row
+            // Priority + Status + Completion Date row
             var showPriorityDialog by remember { mutableStateOf(false) }
             var showStatusDialog by remember { mutableStateOf(false) }
+            var showCompletedDatePicker by remember { mutableStateOf(false) }
+            val isCompleted = state.status == "completed"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val smallTextStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp)
                 if (!state.isEditing) {
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = state.priority.uppercase(),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(stringResource(R.string.label_priority)) },
-                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                            textStyle = smallTextStyle,
+                            label = { Text(stringResource(R.string.label_priority), fontSize = 8.sp) },
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Box(
@@ -276,7 +281,8 @@ fun AddEditTodoScreen(
                         onValueChange = {},
                         readOnly = true,
                         enabled = false,
-                        label = { Text(stringResource(R.string.label_priority)) },
+                        textStyle = smallTextStyle,
+                        label = { Text(stringResource(R.string.label_priority), fontSize = 8.sp) },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -286,8 +292,9 @@ fun AddEditTodoScreen(
                         value = state.status.replace("_", " ").uppercase(),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text(stringResource(R.string.label_status)) },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                        textStyle = smallTextStyle,
+                        label = { Text(stringResource(R.string.label_status), fontSize = 8.sp) },
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Box(
@@ -295,6 +302,29 @@ fun AddEditTodoScreen(
                             .matchParentSize()
                             .clickable { showStatusDialog = true }
                     )
+                }
+
+                if (state.isEditing) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else "",
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = isCompleted,
+                            textStyle = smallTextStyle,
+                            label = { Text(stringResource(R.string.set_completed_date), fontSize = 8.sp) },
+                            trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                            placeholder = { Text("MM/DD/YYYY", fontSize = 9.sp) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (isCompleted) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { showCompletedDatePicker = true }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -381,39 +411,24 @@ fun AddEditTodoScreen(
                 }
             }
 
-            // Completion date — shown as read-only when status is completed
-            if (state.status == "completed") {
-                var showCompletedDatePicker by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else formatForDisplay(Instant.now().toString()),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.set_completed_date)) },
-                        trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Box(modifier = Modifier.matchParentSize().clickable { showCompletedDatePicker = true })
-                }
-                if (showCompletedDatePicker) {
-                    val datePickerState = rememberDatePickerState(
-                        initialSelectedDateMillis = state.completedDate
-                            ?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
-                            ?: System.currentTimeMillis()
-                    )
-                    DatePickerDialog(
-                        onDismissRequest = { showCompletedDatePicker = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                datePickerState.selectedDateMillis?.let {
-                                    viewModel.updateCompletedDate(Instant.ofEpochMilli(it).toString())
-                                }
-                                showCompletedDatePicker = false
-                            }) { Text("OK") }
-                        },
-                        dismissButton = { TextButton(onClick = { showCompletedDatePicker = false }) { Text("Cancel") } }
-                    ) { DatePicker(state = datePickerState) }
-                }
+            if (showCompletedDatePicker) {
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = state.completedDate
+                        ?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+                        ?: System.currentTimeMillis()
+                )
+                DatePickerDialog(
+                    onDismissRequest = { showCompletedDatePicker = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let {
+                                viewModel.updateCompletedDate(Instant.ofEpochMilli(it).toString())
+                            }
+                            showCompletedDatePicker = false
+                        }) { Text("OK") }
+                    },
+                    dismissButton = { TextButton(onClick = { showCompletedDatePicker = false }) { Text("Cancel") } }
+                ) { DatePicker(state = datePickerState) }
             }
 
             // Title
@@ -608,6 +623,7 @@ fun AddEditTodoScreen(
             subtaskToDelete?.let { (index, name) ->
                 AlertDialog(
                     onDismissRequest = { subtaskToDelete = null },
+                    icon = { Icon(painterResource(R.drawable.alert), contentDescription = null, tint = Color.Red) },
                     title = { Text("Delete Subtask") },
                     text = { Text("Delete this subtask?\n\"${name.ifBlank { "Untitled" }}\"") },
                     confirmButton = {

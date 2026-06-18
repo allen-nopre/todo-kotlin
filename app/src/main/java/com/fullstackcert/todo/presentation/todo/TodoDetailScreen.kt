@@ -56,6 +56,7 @@ fun TodoDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
+            icon = { Icon(painterResource(R.drawable.alert), contentDescription = null, tint = Color.Red) },
             title = { Text(stringResource(R.string.delete_todo)) },
             text = { Text(stringResource(R.string.delete_todo_confirm)) },
             confirmButton = {
