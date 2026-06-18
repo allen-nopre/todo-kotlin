@@ -318,7 +318,8 @@ fun AddEditTodoScreen(
                         ).forEach { s ->
                             DropdownMenuItem(
                                 text = { Text(s.replace("_", " ").uppercase()) },
-                                onClick = { viewModel.updateStatus(s); expandedStatus = false })
+                                onClick = { viewModel.updateStatus(s); expandedStatus = false },
+                                enabled = s != "completed")
                         }
                     }
                 }
@@ -403,84 +404,92 @@ fun AddEditTodoScreen(
             )
 
             // Attachments
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    stringResource(R.string.attachments),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    "${state.attachments.size + state.pendingAttachments.size}/5",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (totalAttachments >= 5) MaterialTheme.colorScheme.error else GraySecondary
-                )
-            }
-            if (totalAttachments < 5) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        readOnly = true,
-                        placeholder = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    painterResource(R.drawable.filter),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    "Browse images to attach (${5 - totalAttachments} remaining)",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        trailingIcon = {
-                            if (state.isLoading && state.existingTodo != null) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(R.string.attachments),
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable { filePicker.launch("image/*") }
+                    Text(
+                        "${state.attachments.size + state.pendingAttachments.size}/5",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (totalAttachments >= 5) MaterialTheme.colorScheme.error else GraySecondary
                     )
                 }
-            }
-            val allAttachments = state.attachments
-            val pendingAttachments = state.pendingAttachments
-            if (allAttachments.isNotEmpty() || pendingAttachments.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    allAttachments.forEach { attachment ->
-                        AttachmentRow(
-                            name = attachment.fileName,
-                            size = attachment.fileSize,
-                            mimeType = attachment.mimeType,
-                            previewUrl = attachment.url,
-                            previewUri = null,
-                            onDelete = { viewModel.deleteAttachment(attachment.id) }
+                if (totalAttachments < 5) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = "",
+                            onValueChange = {},
+                            readOnly = true,
+                            placeholder = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.upload),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        "Browse files to attach (${5 - totalAttachments} remaining)",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            trailingIcon = {
+                                if (state.isLoading && state.existingTodo != null) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { filePicker.launch("image/*") }
                         )
                     }
-                    pendingAttachments.forEachIndexed { index, pending ->
-                        AttachmentRow(
-                            name = pending.file.name,
-                            size = null,
-                            mimeType = pending.mimeType,
-                            previewUrl = null,
-                            previewUri = pending.uri,
-                            onDelete = { viewModel.removePendingAttachment(index) }
-                        )
+                }
+                val allAttachments = state.attachments
+                val pendingAttachments = state.pendingAttachments
+                if (allAttachments.isNotEmpty() || pendingAttachments.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        allAttachments.forEach { attachment ->
+                            AttachmentRow(
+                                name = attachment.fileName,
+                                size = attachment.fileSize,
+                                mimeType = attachment.mimeType,
+                                previewUrl = attachment.url,
+                                previewUri = null,
+                                onDelete = { viewModel.deleteAttachment(attachment.id) }
+                            )
+                        }
+                        pendingAttachments.forEachIndexed { index, pending ->
+                            AttachmentRow(
+                                name = pending.file.name,
+                                size = null,
+                                mimeType = pending.mimeType,
+                                previewUrl = null,
+                                previewUri = pending.uri,
+                                onDelete = { viewModel.removePendingAttachment(index) }
+                            )
+                        }
                     }
                 }
             }
@@ -584,6 +593,13 @@ fun AddEditTodoScreen(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { viewModel.updateStatus("completed") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Mark as Complete!")
+                }
             }
 
             Spacer(Modifier.height(8.dp))

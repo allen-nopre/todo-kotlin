@@ -112,11 +112,7 @@ class AddEditTodoViewModel @Inject constructor(
         _state.update {
             val list = it.subtasks.toMutableList()
             list[index] = list[index].copy(isDone = !list[index].isDone)
-            val nonEmpty = list.filter { s -> s.title.isNotBlank() }
-            val allDone = nonEmpty.isNotEmpty() && nonEmpty.all { s -> s.isDone }
-            val newStatus = if (allDone) "completed" else if (it.status == "completed") "in_progress" else it.status
-            val newCompletedDate = if (allDone) Instant.now().toString() else if (it.status == "completed") null else it.completedDate
-            it.copy(subtasks = list, status = newStatus, completedDate = newCompletedDate)
+            it.copy(subtasks = list)
         }
     }
     fun removeSubtask(index: Int) {
