@@ -30,6 +30,7 @@ data class AddEditState(
     val priority: String = "low",
     val status: String = "not_started",
     val completedDate: String? = null,
+    val originalStatus: String = "not_started",
     val createdDate: String = Instant.now().toString(),
     val subtasks: List<SubtaskInput> = listOf(SubtaskInput(), SubtaskInput(), SubtaskInput()),
     val attachments: List<Attachment> = emptyList(),
@@ -94,7 +95,8 @@ class AddEditTodoViewModel @Inject constructor(
             val completedDate = if (value == "completed") Instant.now().toString()
                                 else if (it.status == "completed") null
                                 else it.completedDate
-            it.copy(status = value, completedDate = completedDate)
+            val originalStatus = if (value != "completed") value else it.originalStatus
+            it.copy(status = value, completedDate = completedDate, originalStatus = originalStatus)
         }
     }
     fun updateCompletedDate(value: String?) { _state.update { it.copy(completedDate = value) } }
@@ -111,8 +113,15 @@ class AddEditTodoViewModel @Inject constructor(
         if (_state.value.subtasks[index].title.isBlank()) return
         _state.update {
             val list = it.subtasks.toMutableList()
-            list[index] = list[index].copy(isDone = !list[index].isDone)
-            it.copy(subtasks = list)
+            val toggled = !list[index].isDone
+            list[index] = list[index].copy(isDone = toggled)
+            val anyNotDone = list.any { s -> s.title.isNotBlank() && !s.isDone }
+            val revert = anyNotDone && it.status == "completed"
+            it.copy(
+                subtasks = list,
+                status = if (revert) it.originalStatus else it.status,
+                completedDate = if (revert) null else it.completedDate
+            )
         }
     }
     fun removeSubtask(index: Int) {

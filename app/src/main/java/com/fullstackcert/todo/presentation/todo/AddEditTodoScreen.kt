@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -247,38 +248,27 @@ fun AddEditTodoScreen(
         ) {
 
             // Priority + Status row
+            var showPriorityDialog by remember { mutableStateOf(false) }
+            var showStatusDialog by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                var expandedPriority by remember { mutableStateOf(false) }
                 if (!state.isEditing) {
-                    ExposedDropdownMenuBox(
-                        expanded = expandedPriority,
-                        onExpandedChange = { expandedPriority = it },
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Box(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = state.priority.uppercase(),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.label_priority)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPriority) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
+                            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        ExposedDropdownMenu(
-                            expanded = expandedPriority,
-                            onDismissRequest = { expandedPriority = false }) {
-                            listOf("low", "high", "critical").forEach { p ->
-                                DropdownMenuItem(
-                                    text = { Text(p.uppercase()) },
-                                    onClick = {
-                                        viewModel.updatePriority(p); expandedPriority = false
-                                    })
-                            }
-                        }
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showPriorityDialog = true }
+                        )
                     }
                 } else {
                     OutlinedTextField(
@@ -291,52 +281,139 @@ fun AddEditTodoScreen(
                     )
                 }
 
-                var expandedStatus by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expandedStatus,
-                    onExpandedChange = { expandedStatus = it },
-                    modifier = Modifier.weight(1f)
-                ) {
+                Box(modifier = Modifier.weight(1f)) {
                     OutlinedTextField(
                         value = state.status.replace("_", " ").uppercase(),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(R.string.label_status)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedStatus) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    ExposedDropdownMenu(
-                        expanded = expandedStatus,
-                        onDismissRequest = { expandedStatus = false }) {
-                        listOf(
-                            "not_started",
-                            "in_progress",
-                            "completed",
-                            "cancelled"
-                        ).forEach { s ->
-                            DropdownMenuItem(
-                                text = { Text(s.replace("_", " ").uppercase()) },
-                                onClick = { viewModel.updateStatus(s); expandedStatus = false },
-                                enabled = s != "completed")
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showStatusDialog = true }
+                    )
+                }
+            }
+
+            if (showPriorityDialog) {
+                var selectedPriority by remember { mutableStateOf(state.priority) }
+                ModalBottomSheet(
+                    onDismissRequest = { showPriorityDialog = false }
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Text("Select Priority", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(8.dp))
+                        listOf("low", "high", "critical").forEach { p ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedPriority = p }
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                RadioButton(
+                                    selected = selectedPriority == p,
+                                    onClick = { selectedPriority = p }
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(p.uppercase())
+                            }
                         }
+                        HorizontalDivider()
+                        Button(
+                            onClick = {
+                                viewModel.updatePriority(selectedPriority)
+                                showPriorityDialog = false
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                        ) { Text("Apply") }
+                    }
+                }
+            }
+
+            if (showStatusDialog) {
+                var selectedStatus by remember { mutableStateOf(state.status) }
+                ModalBottomSheet(
+                    onDismissRequest = { showStatusDialog = false }
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Text("Select Status", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(8.dp))
+                        listOf("not_started", "in_progress", "completed", "cancelled").forEach { s ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (s != "completed") Modifier.clickable { selectedStatus = s }
+                                        else Modifier
+                                    )
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                RadioButton(
+                                    selected = selectedStatus == s,
+                                    onClick = { if (s != "completed") selectedStatus = s },
+                                    enabled = s != "completed"
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    s.replace("_", " ").uppercase(),
+                                    color = if (s == "completed") Color.Gray else Color.Unspecified
+                                )
+                            }
+                        }
+                        HorizontalDivider()
+                        Button(
+                            onClick = {
+                                viewModel.updateStatus(selectedStatus)
+                                showStatusDialog = false
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                        ) { Text("Apply") }
                     }
                 }
             }
 
             // Completion date — shown as read-only when status is completed
             if (state.status == "completed") {
-                OutlinedTextField(
-                    value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else formatForDisplay(
-                        Instant.now().toString()
-                    ),
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    label = { Text(stringResource(R.string.set_completed_date)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                var showCompletedDatePicker by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = if (!state.completedDate.isNullOrBlank()) formatForDisplay(state.completedDate!!) else formatForDisplay(Instant.now().toString()),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.set_completed_date)) },
+                        trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(modifier = Modifier.matchParentSize().clickable { showCompletedDatePicker = true })
+                }
+                if (showCompletedDatePicker) {
+                    val datePickerState = rememberDatePickerState(
+                        initialSelectedDateMillis = state.completedDate
+                            ?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+                            ?: System.currentTimeMillis()
+                    )
+                    DatePickerDialog(
+                        onDismissRequest = { showCompletedDatePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                datePickerState.selectedDateMillis?.let {
+                                    viewModel.updateCompletedDate(Instant.ofEpochMilli(it).toString())
+                                }
+                                showCompletedDatePicker = false
+                            }) { Text("OK") }
+                        },
+                        dismissButton = { TextButton(onClick = { showCompletedDatePicker = false }) { Text("Cancel") } }
+                    ) { DatePicker(state = datePickerState) }
+                }
             }
 
             // Title
@@ -420,11 +497,11 @@ fun AddEditTodoScreen(
                         stringResource(R.string.attachments),
                         style = MaterialTheme.typography.titleSmall
                     )
-                    Text(
-                        "${state.attachments.size + state.pendingAttachments.size}/5",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (totalAttachments >= 5) MaterialTheme.colorScheme.error else GraySecondary
-                    )
+//                    Text(
+//                        "${state.attachments.size + state.pendingAttachments.size}/5",
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = if (totalAttachments >= 5) MaterialTheme.colorScheme.error else GraySecondary
+//                    )
                 }
                 if (totalAttachments < 5) {
                     Box(modifier = Modifier.fillMaxWidth()) {
@@ -443,9 +520,13 @@ fun AddEditTodoScreen(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
                                     )
+                                    val primary = MaterialTheme.colorScheme.primary
+                                    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
                                     Text(
-                                        "Browse files to attach (${5 - totalAttachments} remaining)",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        buildAnnotatedString {
+                                            withStyle(SpanStyle(color = primary)) { append("Browse") }
+                                            withStyle(SpanStyle(color = onSurfaceVariant)) { append(" files to attach ") }
+                                        }
                                     )
                                 }
                             },
@@ -503,11 +584,11 @@ fun AddEditTodoScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(R.string.subtasks), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "${state.subtasks.size}/10",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (state.subtasks.size >= 10) MaterialTheme.colorScheme.error else GraySecondary
-                )
+//                Text(
+//                    "${state.subtasks.size}/10",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = if (state.subtasks.size >= 10) MaterialTheme.colorScheme.error else GraySecondary
+//                )
                 OutlinedButton(
                     onClick = { viewModel.addSubtask() },
                     enabled = state.status != "completed" && state.subtasks.size < 10
@@ -596,6 +677,7 @@ fun AddEditTodoScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = { viewModel.updateStatus("completed") },
+                    enabled = state.status != "completed",
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Mark as Complete!")

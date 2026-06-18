@@ -49,7 +49,9 @@ private fun evaluateRules(password: String, username: String): List<PasswordRule
     return listOf(
         PasswordRule(
             "rule_no_name",
-            username.isBlank() || !password.contains(username, ignoreCase = true)
+            username.isBlank() || (4..username.length).flatMap { len ->
+                (0..username.length - len).map { start -> username.substring(start, start + len) }
+            }.none { part -> password.contains(part, ignoreCase = true) }
         ),
         PasswordRule("rule_min_length", password.length >= 8),
         PasswordRule(
